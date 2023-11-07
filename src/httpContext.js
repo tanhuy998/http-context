@@ -23,7 +23,7 @@ module.exports = class HttpContext extends Context {
 
     static #registerControllers() {
 
-        for (const controller of this.controllers.values() ?? []) {
+        for (const controlaler of this.controllers.values() ?? []) {
 
             this.pipeline.addPhase().setHandler(controller).build();
         } 

@@ -11,6 +11,7 @@ module.exports = class HttpController extends BaseController {
 
     static expressRouter = undefined;
 
+    /**@type {Set<string>} */
     static routeMap;
 
     static get router() {
@@ -32,7 +33,14 @@ module.exports = class HttpController extends BaseController {
 
         this.expressRouter = express.Router();
 
+        this.initRouteMap();
+
         this.registerRoutes();
+    }
+
+    static initRouteMap() {
+
+        this.routeMap = new Set();
     }
 
     static registerRoutes() {
@@ -61,9 +69,8 @@ module.exports = class HttpController extends BaseController {
 
                 for (const verb of verbs) {
 
-                    const handleFunction = generateExpressHandler(this, fn);
-                    console.log(verb, pattern)
-                    exprRouter[verb](pattern, handleFunction);
+                    console.log(verb, pattern);
+                    exprRouter[verb](pattern, generateExpressHandler(this, fn));
                 }
             }
         }
@@ -109,11 +116,13 @@ function generateExpressHandler(_controllerClass, _func) {
 
         DI.inject(controllerObj);
 
-        const args = await DI.resolveArguments(_func, httpContext);
+        //const args = await DI.resolveArguments(_func, httpContext);
 
         try {
             
             await _func.call(controllerObj, ...(args ?? []));
+
+            //await DI.invoke(controllerObj, _func, httpContext);
 
             next();
         }
@@ -122,4 +131,9 @@ function generateExpressHandler(_controllerClass, _func) {
             next(error);
         }
     }
+}
+
+function generateInternalHandler() {
+
+
 }

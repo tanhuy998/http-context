@@ -1,15 +1,29 @@
+const {addVerb} = require('./httpMethodEncoding.js');
 module.exports = class RouteMetadata {
 
-    /**@type {Map<string, Set<string>>} */
+    /**@type {Map<string, number>} */
     #map = new Map();
 
-    /**@returns {Map<string, Set<string>>} */
+    /**@returns {Map<string, number>} */
     get all() {
 
         return this.#map;
     }
 
+    /**
+     * 
+     * @param {string} _verb 
+     * @param {string} _pattern 
+     */
     set(_verb, _pattern) {
+
+        // const map = this.#map;
+
+        // const storedVerbChain = map.has(_pattern) ? map.get(_pattern) : 0;
+
+        // const newVerbChain = addVerb(_verb, storedVerbChain);
+
+        // map.set(_pattern, newVerbChain);
 
         const map = this.#map;
 
