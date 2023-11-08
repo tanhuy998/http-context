@@ -18,11 +18,11 @@
     "@babel/preset-env": "^7.20.2",
     "@babel/preset-typescript": "^7.21.0",
     "@babel/register": "^7.18.9",
+    "@types/node": "^20.8.10",
     "jest": "^29.7.0"
   },
   "dependencies": {
-    "@types/node": "^20.8.10",
     "express": "^4.18.2",
-    "isln": "^0.0.3"
+    "isln": "^0.0.4"
   }
 }

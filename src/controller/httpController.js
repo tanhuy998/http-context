@@ -28,7 +28,7 @@ module.exports = class HttpController extends BaseController {
     /**@type {RouteMap} */
     static routeMap;
 
-    static get internalRouter() {
+    static get filterRouter() {
 
         if (!this.internalRouter) {
 
@@ -72,7 +72,7 @@ module.exports = class HttpController extends BaseController {
     static registerRoutes() {
 
         const exprRouter = this.router;
-        const internalRouter = this.router;
+        const internalRouter = this.filterRouter;
         const routeMap = this.routeMap;
 
         if (!exprRouter) {
@@ -128,21 +128,21 @@ module.exports = class HttpController extends BaseController {
         const res = this.httpContext.response;
 
         /**@type {express.Router} */
-        const internalRouter = self(this).internalRouter;
+        const internalRouter = self(this).filterRouter;
 
-        internalRouter.handle(req, res, () => {});
+        const r = internalRouter.handle(req, res, () => {});
 
         /**
          * using RouteMap to get the exact method for handling the current route;
          */
-
+        
         return this.#resolve();
     }
 
     #resolve() {
 
         const methods = this.#resolveRoutesMetadata();
-
+        console.log(methods)
         return this.#treat(methods.values());
     }
     
@@ -186,7 +186,7 @@ module.exports = class HttpController extends BaseController {
 
         /**@type {RouteMap} */
         const routeMap = self(this).routeMap;
-
+        
         /**@type {string} */
         const currentPattern = req.route.path;
 
@@ -207,7 +207,7 @@ module.exports = class HttpController extends BaseController {
         const ret = [];
 
         const httpRequest = this.httpContext.request;
-
+        
         /**@type {string} */
         const httpMethod = httpRequest.method;
         /**@type {string} */
@@ -220,10 +220,10 @@ module.exports = class HttpController extends BaseController {
                 continue;
             }
 
-            console.log(httpMethod, reqPattern)
+            //console.log(httpMethod, reqPattern)
             const fn = routeMeta.mappedFunction;
             
-            if (typeof fn !== 'function') {
+            if (typeof fn === 'function') {
 
                 ret.push(fn);
             }
@@ -277,6 +277,8 @@ function generateExpressHandler(_controllerClass, _func) {
 function generateInternalHandler() {
 
     return function (req, res, next) {
+
+        console.log('default', req.route?.path)
 
         next();
     }

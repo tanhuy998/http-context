@@ -1,6 +1,4 @@
 const Context = require('isln/context');
-const Request = require('./request.js');
-const Response = require('./response.js');
 
 const RequestCoordinator = require('./coordinator/requestCoordinator.js');
 const ResponseCoordinator = require('./coordinator/responseCoordinator.js');
@@ -90,7 +88,7 @@ module.exports = class HttpContext extends Context {
 
         const Context = this;
 
-        return async function(req, res, next) {
+        const mainHandler = async function(req, res, next) {
 
             try {
         
@@ -112,6 +110,16 @@ module.exports = class HttpContext extends Context {
                 console.log(err)
                 next(err);
             }
+        }
+
+        return mainHandler;
+    }
+
+    static* #controlersInternalRouter() {
+
+        for (const ControllerClass of this.controllers.values()) {
+
+            yield ControllerClass.filterRouter;
         }
     }
 
