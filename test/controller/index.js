@@ -1,26 +1,25 @@
-const HttpController = require('../../src/controller/httpController.js');
-const Route = require('../../src/decorator/route.js');
+require('@babel/register')({
+    only: [
+        /controller/
+    ]
+})
 
 const express = require('express');
 const app = express();
 
 const port = 3000;
 
-class Controller extends HttpController{
+const HttpContext = require('../../src/httpContext');
+const Controller = require('./controller/controller');
+const { error } = require('console');
 
-    @Route.get('/')
-    index() {
+//HttpContext.pipeline.addPhase().setHandler(Controller).build();
 
-        const res = this.httpContext.response;
-        const req = this.httpContext.request;
+HttpContext.use(Controller);
 
-        console.log('test controller', req, res);
+//app.use(Controller.serve());
 
-        res.send('done');
-    }
-}
-
-app.use(Controller.serve());
+app.use(HttpContext.serve());
 
 app.listen(port, (error) => {
 

@@ -6,14 +6,37 @@ const Context = require("isln/context/index.js");
 const HttpContext = require("../httpContext.js");
 const self = require('reflectype/src/utils/self.js');
 const {convertToVerbList} = require('../utils/httpMethodEncoding.js');
+const RouteMap = require("../utils/routeMap.js");
+
 
 
 module.exports = class HttpController extends BaseController {
-
+    
+    /**
+     * For static call handling without pipeline
+     * 
+     * @type {express.Router}
+     */
     static expressRouter = undefined;
 
-    /**@type {Set<string>} */
+    /**
+     * For handling inside a pipeline
+     */
+    /**@type {express.Router} */
+    static internalRouter = undefined;
+
+    /**@type {RouteMap} */
     static routeMap;
+
+    static get internalRouter() {
+
+        if (!this.internalRouter) {
+
+            this._init();
+        }
+
+        return this.internalRouter;
+    }
 
     static get router() {
 
@@ -34,6 +57,8 @@ module.exports = class HttpController extends BaseController {
 
         this.expressRouter = express.Router();
 
+        this.internalRouter = express.Router();
+
         this.initRouteMap();
 
         this.registerRoutes();
@@ -41,12 +66,14 @@ module.exports = class HttpController extends BaseController {
 
     static initRouteMap() {
 
-        this.routeMap = new Set();
+        this.routeMap = new RouteMap();
     }
 
     static registerRoutes() {
 
         const exprRouter = this.router;
+        const internalRouter = this.router;
+        const routeMap = this.routeMap;
 
         if (!exprRouter) {
 
@@ -68,17 +95,27 @@ module.exports = class HttpController extends BaseController {
                     continue;
                 }
 
+                routeMap.map(pattern, route);                
+
                 const verbList = convertToVerbList(verbChain);
                 
                 for (const verb of verbList || []) {
 
                     console.log(verb, pattern);
                     exprRouter[verb](pattern, generateExpressHandler(this, fn));
+                    internalRouter[verb](pattern, generateInternalHandler());
                 }
             }
         }
     }
 
+    /**
+     * PROTOTYPE AREA
+     */
+
+    #cur = [];
+    
+    #state;
 
     get httpContext() {
 
@@ -90,9 +127,109 @@ module.exports = class HttpController extends BaseController {
         const req = this.httpContext.request;
         const res = this.httpContext.response;
 
-        const router = self(this).router;
+        /**@type {express.Router} */
+        const internalRouter = self(this).internalRouter;
 
-        router(req, res, () => {});
+        internalRouter.handle(req, res, () => {});
+
+        /**
+         * using RouteMap to get the exact method for handling the current route;
+         */
+
+        return this.#resolve();
+    }
+
+    #resolve() {
+
+        const methods = this.#resolveRoutesMetadata();
+
+        return this.#treat(methods.values());
+    }
+    
+    /**
+     * 
+     * @param {Iterator<Function>} _iterator 
+     */
+    #treat(_iterator) {
+
+        let lastHandledValue;
+
+        let iteration = _iterator.next();
+
+        while (!iteration.done) {
+            
+            const fn = iteration.value;
+
+            const handledResult = fn.call(this);
+
+            if (handledResult instanceof Promise) {
+
+                return handledResult.then((function(actionResult) {
+
+                    this.#treat(_iterator);
+
+                }).bind(this)); 
+            }
+            else {
+
+                iteration = _iterator.next();
+            }
+        }
+    }
+
+    /**
+     * 
+     */
+    #resolveRoutesMetadata() {
+
+        const req = this.httpContext.request;
+
+        /**@type {RouteMap} */
+        const routeMap = self(this).routeMap;
+
+        /**@type {string} */
+        const currentPattern = req.route.path;
+
+        const metadatas = routeMap.get(currentPattern);
+
+        return this.#mapRouteMetadataToMethods(metadatas);
+    }
+
+    /**
+     * 
+     * @param {Set<RouteMetadata>} _meta 
+     * 
+     * @returns {Array<Function>}
+     */
+    #mapRouteMetadataToMethods(_meta) {
+
+        /**@type {Array<Function>} */
+        const ret = [];
+
+        const httpRequest = this.httpContext.request;
+
+        /**@type {string} */
+        const httpMethod = httpRequest.method;
+        /**@type {string} */
+        const reqPattern = httpRequest.route.path;
+
+        for (/**@type {RouteMetadata} */ const routeMeta of _meta?.values() ?? []) {
+
+            if (!routeMeta.match(reqPattern, httpMethod)) {
+
+                continue;
+            }
+
+            console.log(httpMethod, reqPattern)
+            const fn = routeMeta.mappedFunction;
+            
+            if (typeof fn !== 'function') {
+
+                ret.push(fn);
+            }
+        }
+
+        return ret;
     }
 }
 
@@ -139,5 +276,8 @@ function generateExpressHandler(_controllerClass, _func) {
 
 function generateInternalHandler() {
 
+    return function (req, res, next) {
 
+        next();
+    }
 }

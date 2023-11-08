@@ -4,16 +4,26 @@ const Response = require('./response.js');
 
 const RequestCoordinator = require('./coordinator/requestCoordinator.js');
 const ResponseCoordinator = require('./coordinator/responseCoordinator.js');
+const { Breakpoint } = require('isln/pipeline/index.js');
+const { ErrorHandler, ContextHandler } = require('isln/handler/index.js');
 
+/**
+ * @typedef {import('./controller/httpController.js')} HttpController
+ */
 module.exports = class HttpContext extends Context {
+
+    static #lock = false;
+
+    static get isLocked() {
+
+        return this.#lock;
+    }
 
     static controllers = new Set();
 
     static {
 
         this.__init();
-
-
     }
 
     static lastStepInitialization() {
@@ -23,15 +33,28 @@ module.exports = class HttpContext extends Context {
 
     static #registerControllers() {
 
-        for (const controlaler of this.controllers.values() ?? []) {
+        for (const Controller of this.controllers.values() ?? []) {
 
-            this.pipeline.addPhase().setHandler(controller).build();
+            Controller._init();
+
+            this.pipeline.addPhase().setHandler(Controller).build();
         } 
     }
 
+    /**
+     * 
+     * @param  {...(HttpController | ContextHandler | Function | ErrorHandler)} Controller 
+     */
     static use(...Controller) {
 
         for (const controller of Controller ?? []) {
+
+            if (controller instanceof ErrorHandler) {
+
+                this.pipeline.onError(controller);
+
+                continue;
+            }
 
             if (!this.controllers.has(controller)) {
 
@@ -40,6 +63,57 @@ module.exports = class HttpContext extends Context {
         }
     }
 
+    /**
+     * 
+     * @param  {...(ErrorHandler | Function)} errorHandlers 
+     */
+    static onError(...errorHandlers) {
+
+        this.pipeline.onError(...errorHandlers);   
+    }
+
+    static begin() {
+
+        this.#registerControllers();
+
+        if (typeof super._lock === 'function') {
+
+            super._lock();
+        }        
+
+        this.#lock = true;
+    }
+
+    static serve() {
+
+        this.begin();
+
+        const Context = this;
+
+        return async function(req, res, next) {
+
+            try {
+        
+                const httpContext = new Context(req, res);
+        
+                const pipeline = Context.pipeline;
+        
+                await pipeline.run(httpContext);
+        
+                next();
+            }
+            catch (err) {
+
+                if (err instanceof Breakpoint) {
+
+                    err = err.originError;
+                }
+
+                console.log(err)
+                next(err);
+            }
+        }
+    }
 
 
     #request;

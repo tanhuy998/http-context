@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test-controller": "npx babel ./test/controller/index.js > ./test/controller/compiled.js && node ./test/controller/compiled.js",
+    "test-static-controller": "npx babel ./test/controller/index.js > ./test/controller/compiled.js && node ./test/controller/compiled.js",
+    "test-controller": "node ./test/controller",
     "test-verbs-encoding": "node ./test/httpVerbsEncdoing"
   },
   "author": "",

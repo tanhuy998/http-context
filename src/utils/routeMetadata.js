@@ -1,13 +1,30 @@
-const {addVerb} = require('./httpMethodEncoding.js');
+const {addVerb, hasVerb} = require('./httpMethodEncoding.js');
 module.exports = class RouteMetadata {
 
     /**@type {Map<string, number>} */
     #map = new Map();
 
+    #func;
+
     /**@returns {Map<string, number>} */
     get all() {
 
         return this.#map;
+    }
+
+    get mappedFunction() {
+
+        return this.#func;
+    }
+
+    constructor(_func) {
+
+        if (typeof _func !== 'function') {
+
+            throw new TypeError('_func must a function')
+        }
+
+        this.#func = _func;
     }
 
     /**
@@ -24,16 +41,30 @@ module.exports = class RouteMetadata {
         const newVerbChain = addVerb(_verb, storedVerbChain);
         
         map.set(_pattern, newVerbChain);
+    }
 
-        // const map = this.#map;
+    /**
+     * 
+     * @param {string} _pattern 
+     * @param {string | number} _verb 
+     * @returns {boolean}
+     * 
+     * @throws {TypeError}
+     */
+    match(_pattern, _verb) {
 
-        // if (!map.has(_pattern)) {
+        if (typeof _pattern !== 'string') {
 
-        //     map.set(_pattern, new Set());
-        // }
+            throw new TypeError('_pattern must be a string');
+        }
 
-        // const set = map.get(_pattern);
+        const verbChain = this.#map.get(_pattern);
 
-        // set.add(_verb);
+        if (typeof verbChain != 'number') {
+
+            return false;
+        }
+
+        return hasVerb(_verb, verbChain);
     }
 }

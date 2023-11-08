@@ -11,7 +11,7 @@ function registerRoute(_func, _verb, _pattern) {
     const meta = _func[METADATA] ??= {};
 
     /**@type {RouteMetadata} */
-    const route = meta.route instanceof RouteMetadata ? meta.route : new RouteMetadata();
+    const route = meta.route instanceof RouteMetadata ? meta.route : new RouteMetadata(_func);
 
     route.set(_verb, _pattern);
 
