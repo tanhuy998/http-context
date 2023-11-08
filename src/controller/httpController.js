@@ -5,6 +5,7 @@ const RouteMetadata = require("../utils/routeMetadata.js");
 const Context = require("isln/context/index.js");
 const HttpContext = require("../httpContext.js");
 const self = require('reflectype/src/utils/self.js');
+const {convertToVerbList} = require('../utils/httpMethodEncoding.js');
 
 
 module.exports = class HttpController extends BaseController {
@@ -59,15 +60,17 @@ module.exports = class HttpController extends BaseController {
             const route = getRoute(fn);
 
             for (const entry of route.all.entries()) {
-                console.log(entry)
-                const [pattern, verbs] = entry;
-
-                if (typeof pattern !== 'string' || !(verbs instanceof Set)) {
+                //console.log(entry)
+                const [pattern, verbChain] = entry;
+                
+                if (typeof pattern !== 'string' || typeof verbChain !== 'number') {
 
                     continue;
                 }
 
-                for (const verb of verbs) {
+                const verbList = convertToVerbList(verbChain);
+                
+                for (const verb of verbList || []) {
 
                     console.log(verb, pattern);
                     exprRouter[verb](pattern, generateExpressHandler(this, fn));
@@ -106,27 +109,28 @@ function generateExpressHandler(_controllerClass, _func) {
     //     throw new TypeError('_controllerClass must be type of HttpController');
     // }
 
-    return async function(req, res, next) {
-
-        const httpContext = new HttpContext(req, res);
-
-        const DI = HttpContext.DI;
-
-        const controllerObj = new _controllerClass(httpContext);
-
-        DI.inject(controllerObj);
-
-        //const args = await DI.resolveArguments(_func, httpContext);
+    return async function (req, res, next) {
 
         try {
-            
+
+            const httpContext = new HttpContext(req, res);
+
+            const DI = HttpContext.DI;
+
+            const controllerObj = new _controllerClass(httpContext);
+
+            DI.inject(controllerObj);
+
+            const args = await DI.resolveArguments(_func, httpContext);
+
+
             await _func.call(controllerObj, ...(args ?? []));
 
             //await DI.invoke(controllerObj, _func, httpContext);
 
             next();
         }
-        catch(error) {
+        catch (error) {
 
             next(error);
         }

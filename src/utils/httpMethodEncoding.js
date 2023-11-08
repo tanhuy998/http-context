@@ -43,6 +43,9 @@ const verbMap =  {
 /**
  * 
  * @param {string} _verb 
+ * @returns {number | false}
+ * 
+ * @throws {TypeError}
  */
 function encodeVerb(_verb) {
 
@@ -51,7 +54,7 @@ function encodeVerb(_verb) {
         throw new TypeError('encodeVerb just converts string value');
     }
 
-    const _verb = _verb.toUpperCase();
+    _verb = _verb.toUpperCase();
 
     if (typeof verbMap[_verb] !== 'number') {
 
@@ -64,6 +67,9 @@ function encodeVerb(_verb) {
 /**
  * 
  * @param {number} value 
+ * @returns {string?}
+ * 
+ * @throws {TypeError}
  */
 function decodeVerb(_verbValue) {
 
@@ -94,9 +100,13 @@ function decodeVerb(_verbValue) {
  * 
  * @param {string | number} _verb 
  * @param {number} _verbChain 
+ * 
+ * @returns {boolean}
+ * 
+ * @throws {TypeError}
  */
 function hasVerb(_verb, _verbChain = 0) {
-
+    
     isVerbChain(_verbChain);
 
     if (typeof _verb === 'string') {
@@ -116,6 +126,10 @@ function hasVerb(_verb, _verbChain = 0) {
  * 
  * @param {string | number} _verb 
  * @param {number} _verbChain 
+ * 
+ * @returns {number}
+ * 
+ * @throws {TypeError}
  */
 function addVerb(_verb, _verbChain = 0) {
 
@@ -124,6 +138,8 @@ function addVerb(_verb, _verbChain = 0) {
     if (typeof _verb === 'string') {
 
         _verb = _verb.toUpperCase();
+
+        _verb = verbMap[_verb];
     }
 
     if (typeof _verb === 'number' && values.includes(_verb)) {
@@ -137,10 +153,14 @@ function addVerb(_verb, _verbChain = 0) {
 /**
  * 
  * @param {number} _verbChain 
+ * 
+ * @returns {boolean}
+ * 
+ * @throws {TypeError}
  */
 function isVerbChain(_verbChain) {
 
-    if (typeof _verbChain !== 'numver') {
+    if (typeof _verbChain !== 'number') {
 
         throw new TypeError('_verbChain must be type of number');
     }
@@ -153,6 +173,8 @@ function isVerbChain(_verbChain) {
  * 
  * @param {number} _verbChain 
  * @return {Array<string>}
+ * 
+ * @throws {TypeError}
  */
 function convertToVerbList(_verbChain) {
 
@@ -162,8 +184,8 @@ function convertToVerbList(_verbChain) {
     const ret = [];
 
     for (const verbValue of values) {
-
-        if (!hasVerb(_verbChain)) {
+        
+        if (!hasVerb(verbValue, _verbChain)) {
 
             continue;
         }
