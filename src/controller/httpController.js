@@ -8,7 +8,11 @@ const self = require('reflectype/src/utils/self.js');
 const {convertToVerbList} = require('../utils/httpMethodEncoding.js');
 const RouteMap = require("../utils/routeMap.js");
 
+const {generateExpressHandler, generateInternalHandler} = require('../expressHandler.js');
 
+/**
+ * @typedef {import('../httpContext.js')} HttpContext
+ */
 
 module.exports = class HttpController extends BaseController {
     
@@ -19,6 +23,8 @@ module.exports = class HttpController extends BaseController {
      */
     static expressRouter = undefined;
 
+    static featureRouter;
+
     /**
      * For handling inside a pipeline
      */
@@ -27,6 +33,8 @@ module.exports = class HttpController extends BaseController {
 
     /**@type {RouteMap} */
     static routeMap;
+
+    static id;
 
     static get filterRouter() {
 
@@ -58,6 +66,8 @@ module.exports = class HttpController extends BaseController {
         this.expressRouter = express.Router();
 
         this.internalRouter = express.Router();
+
+        this.id = typeof this.id === 'symbol' ? this.id : Symbol(this.name);
 
         this.initRouteMap();
 
@@ -103,7 +113,7 @@ module.exports = class HttpController extends BaseController {
 
                     console.log(verb, pattern);
                     exprRouter[verb](pattern, generateExpressHandler(this, fn));
-                    internalRouter[verb](pattern, generateInternalHandler());
+                    internalRouter[verb](pattern, generateInternalHandler(this));
                 }
             }
         }
@@ -113,10 +123,7 @@ module.exports = class HttpController extends BaseController {
      * PROTOTYPE AREA
      */
 
-    #cur = [];
-    
-    #state;
-
+    /**@type {HttpContext} */
     get httpContext() {
 
         return super.context;
@@ -233,53 +240,3 @@ module.exports = class HttpController extends BaseController {
     }
 }
 
-/**
- * 
- * @param {HttpContext} _controllerClass 
- * @param {Function} _func 
- * @returns 
- */
-function generateExpressHandler(_controllerClass, _func) {
-
-    // if (!(_controllerClass?.prototype instanceof HttpController)) {
-
-    //     throw new TypeError('_controllerClass must be type of HttpController');
-    // }
-
-    return async function (req, res, next) {
-
-        try {
-
-            const httpContext = new HttpContext(req, res);
-
-            const DI = HttpContext.DI;
-
-            const controllerObj = new _controllerClass(httpContext);
-
-            DI.inject(controllerObj);
-
-            const args = await DI.resolveArguments(_func, httpContext);
-
-
-            await _func.call(controllerObj, ...(args ?? []));
-
-            //await DI.invoke(controllerObj, _func, httpContext);
-
-            next();
-        }
-        catch (error) {
-
-            next(error);
-        }
-    }
-}
-
-function generateInternalHandler() {
-
-    return function (req, res, next) {
-
-        console.log('default', req.route?.path)
-
-        next();
-    }
-}

@@ -4,6 +4,7 @@ const RequestCoordinator = require('./coordinator/requestCoordinator.js');
 const ResponseCoordinator = require('./coordinator/responseCoordinator.js');
 const { Breakpoint } = require('isln/pipeline/index.js');
 const { ErrorHandler, ContextHandler } = require('isln/handler/index.js');
+const {mainContextHandler} = require('./expressHandler.js');
 
 /**
  * @typedef {import('./controller/httpController.js')} HttpController
@@ -34,7 +35,7 @@ module.exports = class HttpContext extends Context {
         for (const Controller of this.controllers.values() ?? []) {
 
             Controller._init();
-
+            
             this.pipeline.addPhase().setHandler(Controller).build();
         } 
     }
@@ -86,33 +87,21 @@ module.exports = class HttpContext extends Context {
 
         this.begin();
 
-        const Context = this;
+        const handlers = [];
 
-        const mainHandler = async function(req, res, next) {
+        this.#registerControllerInternalRouter(handlers);
 
-            try {
-        
-                const httpContext = new Context(req, res);
-        
-                const pipeline = Context.pipeline;
-        
-                await pipeline.run(httpContext);
-        
-                next();
-            }
-            catch (err) {
+        handlers.push(mainContextHandler(this));
 
-                if (err instanceof Breakpoint) {
+        return handlers;
+    }
 
-                    err = err.originError;
-                }
+    static #registerControllerInternalRouter(_handlers = []) {
 
-                console.log(err)
-                next(err);
-            }
+        for (const filterRouter of this.#controlersInternalRouter()) {
+
+            _handlers.push(filterRouter);
         }
-
-        return mainHandler;
     }
 
     static* #controlersInternalRouter() {
