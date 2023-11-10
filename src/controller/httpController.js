@@ -9,6 +9,7 @@ const {convertToVerbList} = require('../utils/httpMethodEncoding.js');
 const RouteMap = require("../utils/routeMap.js");
 
 const {generateExpressHandler, generateInternalHandler} = require('../expressHandler.js');
+const { getRequestMetadata, hasControllerMetadata } = require("../utils/requestMetadata.js");
 
 /**
  * @typedef {import('../httpContext.js')} HttpContext
@@ -113,7 +114,7 @@ module.exports = class HttpController extends BaseController {
 
                     console.log(verb, pattern);
                     exprRouter[verb](pattern, generateExpressHandler(this, fn));
-                    internalRouter[verb](pattern, generateInternalHandler(this));
+                    internalRouter[verb](pattern, generateInternalHandler(this, fn.name));
                 }
             }
         }
@@ -123,6 +124,8 @@ module.exports = class HttpController extends BaseController {
      * PROTOTYPE AREA
      */
 
+    #handlingProgress;
+
     /**@type {HttpContext} */
     get httpContext() {
 
@@ -131,25 +134,36 @@ module.exports = class HttpController extends BaseController {
 
     handle() {
 
-        const req = this.httpContext.request;
-        const res = this.httpContext.response;
+        // /**@type {express.Router} */
+        // const internalRouter = self(this).filterRouter;
 
-        /**@type {express.Router} */
-        const internalRouter = self(this).filterRouter;
+        // const r = internalRouter.handle(req, res, () => {});
 
-        const r = internalRouter.handle(req, res, () => {});
+        if (!this.#requestMatch()) {
+
+            return;
+        }
 
         /**
          * using RouteMap to get the exact method for handling the current route;
          */
         
-        return this.#resolve();
+        this.#resolve();
+
+        return this.#handlingProgress;
     }
 
+    #requestMatch() {
+
+        const req = this.httpContext.request;
+
+        return hasControllerMetadata(req, this);
+    }
     #resolve() {
 
         const methods = this.#resolveRoutesMetadata();
-        console.log(methods)
+        console.log(methods);
+
         return this.#treat(methods.values());
     }
     
@@ -167,11 +181,13 @@ module.exports = class HttpController extends BaseController {
             
             const fn = iteration.value;
 
-            const handledResult = fn.call(this);
+            //const handledResult = fn.call(this);
+
+            lastHandledValue = fn.call(this);
 
             if (handledResult instanceof Promise) {
 
-                return handledResult.then((function(actionResult) {
+                return this.#handlingProgress = lastHandledValue.then((function(actionResult) {
 
                     this.#treat(_iterator);
 
@@ -182,6 +198,8 @@ module.exports = class HttpController extends BaseController {
                 iteration = _iterator.next();
             }
         }
+
+        return this.#handlingProgress = lastHandledValue;
     }
 
     /**

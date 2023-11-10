@@ -1,5 +1,7 @@
 const HttpContext = require('isln/context');
-const {METADATA} = require('reflectype/src/constants.js');
+// const {METADATA} = require('reflectype/src/constants.js');
+const {initRequestMetadata, initControllerMetadata} = require('./utils/requestMetadata.js');
+const { applyFilter } = require('./utils/controllerFilter.js');
 
 /**
  * @typedef {import('./controller/httpController.js')} HttpController
@@ -49,33 +51,53 @@ function generateExpressHandler(_controllerClass, _func) {
 /**
  * 
  * @param {typeof HttpController} _controllerClass 
- * @param {string} _method 
+ * @param {string | Symbol} _method 
+ * @param {Array<Function>} _filters
  * @returns 
  */
-function generateInternalHandler(_controllerClass, _method) {
+function generateInternalHandler(_controllerClass, _method, _filters = []) {
 
     return function filter(req, res, next) {
 
-        const meta = initMetadata(req);
+        try {
+            /**
+             * applying controller filter
+             */
+            applyFilter({request: req, response: res}, _filters);
 
-        const currentRoute = req.route;
+            //const meta = initMetadata(req);
+            const meta = initControllerMetadata(req);
 
-        meta.route = currentRoute;
-        meta.params = req.params;
+            const currentRoute = req.route;
 
-        next();
+            meta.route = currentRoute;
+            meta.params ??= {};
+            Object.assign(, req.params)
+            
+
+            next();
+        }
+        catch(error) {
+
+            next();
+        }
     }
 
-    function initMetadata(req) {
+    // function initMetadata(req) {
 
-        const wrapper = req[METADATA] ??= {};
+    //     const wrapper = req[METADATA] ??= {};
 
-        const id = _controllerClass.id;
+    //     const id = _controllerClass.id;
 
-        return actualMeta = wrapper[id] ??= {};
-    }
+    //     return actualMeta = wrapper[id] ??= {};
+    // }
 }
 
+/**
+ * 
+ * @param {typeof HttpContext} Context 
+ * @returns 
+ */
 function mainContextHandler(Context) {
 
     return async function (req, res, next) {

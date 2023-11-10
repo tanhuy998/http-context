@@ -1,12 +1,27 @@
 module.exports = class ControllerHandlingState {
 
-    static get SYNC() {
+    #isAsync;
 
-        return 1;
+    #isEndpoint;
+
+    #httpContext;
+
+    get isAsync() {
+
+        return this.#isAsync
     }
 
-    static get ASYNC() {
+    get isEndpoint() {
 
-        return 0;
+        return this.#isEndpoint;
+    }
+    constructor(httpContext) {
+
+        this.#httpContext = httpContext;
+    }
+
+    #init() {
+
+        
     }
 }
