@@ -1,7 +1,15 @@
 const {METADATA} = require('reflectype/src/constants.js');
 const RouteMetadata = require('./routeMetadata');
 
-function registerRoute(_func, _verb, _pattern) {
+/**
+ * 
+ * @param {Function} _func 
+ * @param {*} _verb 
+ * @param {*} _pattern 
+ * @param {string | Symbol} _methodName
+ * @returns 
+ */
+function registerRoute(_func, _verb, _pattern, _methodName) {
 
     if (typeof _verb !== 'string' || typeof _pattern !== 'string') {
 
@@ -11,7 +19,7 @@ function registerRoute(_func, _verb, _pattern) {
     const meta = _func[METADATA] ??= {};
 
     /**@type {RouteMetadata} */
-    const route = meta.route instanceof RouteMetadata ? meta.route : new RouteMetadata(_func);
+    const route = meta.route instanceof RouteMetadata ? meta.route : new RouteMetadata(_func, _methodName);
 
     route.set(_verb, _pattern);
 

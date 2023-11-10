@@ -10,14 +10,14 @@ function mapRoute(_verb) {
 
         return function routeDecorator(_func, context) {
     
-            const {kind} = context;
+            const {kind, name} = context;
     
             if (kind !== 'method') {
     
                 throw new Error('Illegal usage Route mapping decoraotor');
             }
     
-            registerRoute(_func, _verb, _pattern);
+            registerRoute(_func, _verb, _pattern, name);
 
             return _func;
         }

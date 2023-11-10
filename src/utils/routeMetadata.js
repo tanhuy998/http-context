@@ -6,6 +6,8 @@ module.exports = class RouteMetadata {
 
     #func;
 
+    #methodName;
+
     /**@returns {Map<string, number>} */
     get all() {
 
@@ -17,13 +19,24 @@ module.exports = class RouteMetadata {
         return this.#func;
     }
 
-    constructor(_func) {
+    get mappedMethodName() {
+
+        return this.#methodName;
+    }
+
+    constructor(_func, _name) {
 
         if (typeof _func !== 'function') {
 
             throw new TypeError('_func must a function')
         }
 
+        if (typeof _name !== 'string' && typeof _name !== 'symbol') {
+
+            throw new TypeError('_name is not type of string or Symbol');
+        }
+
+        this.#methodName = _name;
         this.#func = _func;
     }
 

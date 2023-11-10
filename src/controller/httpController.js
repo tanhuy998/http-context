@@ -246,8 +246,11 @@ module.exports = class HttpController extends BaseController {
             }
 
             //console.log(httpMethod, reqPattern)
-            const fn = routeMeta.mappedFunction;
-            
+            // const fn = routeMeta.mappedFunction;
+
+            const methodName = routeMeta.mappedMethodName;
+            const fn = this[methodName];
+
             if (typeof fn === 'function') {
 
                 ret.push(fn);
