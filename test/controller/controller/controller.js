@@ -1,15 +1,21 @@
 const HttpController = require('../../../src/controller/httpController.js');
 const Route = require('../../../src/decorator/route.js');
+const {paramsType} = require('reflectype/src/decorators');
+const Something = require('../component/something.js');
+const IGet = require('../interface/iGet.js');
+const autowired = require('isln/decorator/autowired.js');
 
 module.exports = class Controller extends HttpController{
 
+    @autowired
     @Route.get('/')
-    index() {
+    @paramsType(IGet)
+    index(_comp) {
 
         const res = this.httpContext.response;
         const req = this.httpContext.request;
 
-        console.log('test controller', req, res);
+        console.log('test controller', _comp.get());
 
         res.send('done');
     }

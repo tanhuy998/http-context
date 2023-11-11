@@ -1,7 +1,8 @@
 const HttpContext = require('isln/context');
 // const {METADATA} = require('reflectype/src/constants.js');
-const {initRequestMetadata, initControllerMetadata} = require('./utils/requestMetadata.js');
+const {initRequestMetadata, initControllerMetadata, getRequestMetadata} = require('./utils/requestMetadata.js');
 const { applyFilter } = require('./utils/controllerFilter.js');
+const {Breakpoint} = require('isln/pipeline');
 
 /**
  * @typedef {import('./controller/httpController.js')} HttpController
@@ -57,28 +58,28 @@ function generateExpressHandler(_controllerClass, _func) {
  */
 function generateInternalHandler(_controllerClass, _method, _filters = []) {
 
-    return function filter(req, res, next) {
+    return function controllerFilter(req, res, next) {
 
         try {
             /**
-             * applying controller filter
+             * applying controller decision filter
              */
             applyFilter({request: req, response: res}, _filters);
 
             //const meta = initMetadata(req);
-            const meta = initControllerMetadata(req);
+            const meta = initControllerMetadata(req, _controllerClass);
+            
+            console.log(getRequestMetadata(req));
 
             const currentRoute = req.route;
 
             meta.route = currentRoute;
-            meta.params ??= {};
-            Object.assign(, req.params)
-            
+            meta.params = req.params;
 
             next();
         }
         catch(error) {
-
+            console.log(error);
             next();
         }
     }
@@ -103,7 +104,7 @@ function mainContextHandler(Context) {
     return async function (req, res, next) {
 
         try {
-    
+
             const httpContext = new Context(req, res);
     
             const pipeline = Context.pipeline;

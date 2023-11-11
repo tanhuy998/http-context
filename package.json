@@ -23,6 +23,6 @@
   },
   "dependencies": {
     "express": "^4.18.2",
-    "isln": "^0.0.4"
+    "isln": "^0.0.5"
   }
 }

@@ -2,7 +2,7 @@ const self = require('reflectype/src/utils/self');
 
 function resolveControllerId(_controller) {
 
-    return typeof _controller !== 'function' ? _controller.id : self(_controller)?.id;
+    return typeof _controller === 'function' ? _controller.id : self(_controller)?.id;
 }
 
 function checkController(_controller) {

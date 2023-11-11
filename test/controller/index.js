@@ -1,6 +1,7 @@
 require('@babel/register')({
     only: [
-        /controller/
+        /controller/,
+        /component/
     ]
 })
 
@@ -11,11 +12,13 @@ const port = 3000;
 
 const HttpContext = require('../../src/httpContext');
 const Controller = require('./controller/controller');
-const { error } = require('console');
+const IGet = require('./interface/iGet');
+const Something = require('./component/something');
 
 //HttpContext.pipeline.addPhase().setHandler(Controller).build();
 
 HttpContext.use(Controller);
+HttpContext.components.bind(IGet, Something);
 
 //app.use(Controller.serve());
 

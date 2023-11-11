@@ -5,6 +5,8 @@ const ResponseCoordinator = require('./coordinator/responseCoordinator.js');
 const { Breakpoint } = require('isln/pipeline/index.js');
 const { ErrorHandler, ContextHandler } = require('isln/handler/index.js');
 const {mainContextHandler} = require('./expressHandler.js');
+const endpointFilter = require('./handler/endpointFilter.js');
+const express = require('express');
 
 /**
  * @typedef {import('./controller/httpController.js')} HttpController
@@ -73,7 +75,7 @@ module.exports = class HttpContext extends Context {
 
     static begin() {
 
-        this.#registerControllers();
+        //this.#registerControllers();
 
         if (typeof super._lock === 'function') {
 
@@ -87,13 +89,56 @@ module.exports = class HttpContext extends Context {
 
         this.begin();
 
-        const handlers = [];
+        this.#registerTopMiddlewares();
 
-        this.#registerControllerInternalRouter(handlers);
+        this.#registerEndpointFilters();
 
-        handlers.push(mainContextHandler(this));
+        this.#registerPreActionFilters();
 
-        return handlers;
+        this.#registerControllers();
+
+        this.#registerPostActionFilters();
+
+        return mainContextHandler(this);
+    }
+
+    static #registerTopMiddlewares() {
+
+
+    }
+
+    static #registerControllerResultFilter() {
+
+
+    }
+
+    static #registerEndpointFilters() {
+
+        const filters = this.#retrieveEndpointFilters();
+
+        this.pipeline.addPhase().setHandler(endpointFilter(filters)).build();
+    }
+
+    static #registerPreActionFilters() {
+
+
+    }
+
+    static #registerPostActionFilters() {
+
+
+    }
+
+    static #retrieveEndpointFilters() {
+
+        const ret = [];
+
+        for (const filterRouter of this.#controlersInternalRouter()) {
+
+            ret.push(filterRouter);
+        }
+
+        return express.Router().use(ret);
     }
 
     static #registerControllerInternalRouter(_handlers = []) {

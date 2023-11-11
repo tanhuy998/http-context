@@ -57,6 +57,16 @@ module.exports = class HttpController extends BaseController {
         return this.expressRouter;
     }
 
+    static get feature() {
+
+        if (!this.featureRouter) {
+
+            this._init();
+        }
+
+        return this.featureRouter;
+    }
+
     static serve() {
 
        return this.router;
@@ -67,6 +77,11 @@ module.exports = class HttpController extends BaseController {
         this.expressRouter = express.Router();
 
         this.internalRouter = express.Router();
+
+        this.featureRouter = {
+            before: express.Router(),
+            after: express.Router()
+        };
 
         this.id = typeof this.id === 'symbol' ? this.id : Symbol(this.name);
 
@@ -98,7 +113,7 @@ module.exports = class HttpController extends BaseController {
             const route = getRoute(fn);
 
             for (const entry of route.all.entries()) {
-                //console.log(entry)
+                //
                 const [pattern, verbChain] = entry;
                 
                 if (typeof pattern !== 'string' || typeof verbChain !== 'number') {
@@ -112,7 +127,7 @@ module.exports = class HttpController extends BaseController {
                 
                 for (const verb of verbList || []) {
 
-                    console.log(verb, pattern);
+                    
                     exprRouter[verb](pattern, generateExpressHandler(this, fn));
                     internalRouter[verb](pattern, generateInternalHandler(this, fn.name));
                 }
@@ -133,14 +148,14 @@ module.exports = class HttpController extends BaseController {
     }
 
     handle() {
-
+        
         // /**@type {express.Router} */
         // const internalRouter = self(this).filterRouter;
 
         // const r = internalRouter.handle(req, res, () => {});
 
         if (!this.#requestMatch()) {
-
+            
             return;
         }
 
@@ -162,7 +177,7 @@ module.exports = class HttpController extends BaseController {
     #resolve() {
 
         const methods = this.#resolveRoutesMetadata();
-        console.log(methods);
+        
 
         return this.#treat(methods.values());
     }
@@ -172,7 +187,7 @@ module.exports = class HttpController extends BaseController {
      * @param {Iterator<Function>} _iterator 
      */
     #treat(_iterator) {
-
+        
         let lastHandledValue;
 
         let iteration = _iterator.next();
@@ -185,7 +200,7 @@ module.exports = class HttpController extends BaseController {
 
             lastHandledValue = fn.call(this);
 
-            if (handledResult instanceof Promise) {
+            if (lastHandledValue instanceof Promise) {
 
                 return this.#handlingProgress = lastHandledValue.then((function(actionResult) {
 
@@ -245,7 +260,7 @@ module.exports = class HttpController extends BaseController {
                 continue;
             }
 
-            //console.log(httpMethod, reqPattern)
+            //
             // const fn = routeMeta.mappedFunction;
 
             const methodName = routeMeta.mappedMethodName;
@@ -256,8 +271,40 @@ module.exports = class HttpController extends BaseController {
                 ret.push(fn);
             }
         }
-
+        
         return ret;
+    }
+
+    /**
+     * 
+     * @param {string} _view 
+     * @param {_variables} _variables 
+     * 
+     * @returns {ViewResult}
+     */
+    render(_view, _variables) {
+
+    }
+
+    /**
+     * 
+     * @param {string} _url 
+     * 
+     * @returns {RedirectResult}
+     */
+    redirect(_url) {
+
+
+    }
+
+    download() {
+
+
+    }
+
+    file() {
+
+
     }
 }
 
