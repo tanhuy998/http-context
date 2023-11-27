@@ -43,7 +43,7 @@ const verbMap =  {
 /**
  * 
  * @param {string} _verb 
- * @returns {number | false}
+ * @returns {number | false}registerRoute
  * 
  * @throws {TypeError}
  */

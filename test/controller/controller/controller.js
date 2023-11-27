@@ -5,7 +5,8 @@ const Something = require('../component/something.js');
 const IGet = require('../interface/iGet.js');
 const autowired = require('isln/decorator/autowired.js');
 
-module.exports = class Controller extends HttpController{
+@Route.group('/admin')
+class Controller extends HttpController{
 
     @autowired
     @Route.get('/')
@@ -20,3 +21,5 @@ module.exports = class Controller extends HttpController{
         res.send('done');
     }
 }
+
+module.exports = Controller;

@@ -69,13 +69,13 @@ function generateInternalHandler(_controllerClass, _method, _filters = []) {
             //const meta = initMetadata(req);
             const meta = initControllerMetadata(req, _controllerClass);
             
-            console.log(getRequestMetadata(req));
+            //console.log(getRequestMetadata(req));
 
             const currentRoute = req.route;
 
             meta.route = currentRoute;
             meta.params = req.params;
-
+            console.log(meta);
             next();
         }
         catch(error) {

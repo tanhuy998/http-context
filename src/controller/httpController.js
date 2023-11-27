@@ -10,6 +10,8 @@ const RouteMap = require("../utils/routeMap.js");
 
 const {generateExpressHandler, generateInternalHandler} = require('../expressHandler.js');
 const { getRequestMetadata, hasControllerMetadata } = require("../utils/requestMetadata.js");
+const { currentGroup } = require("../decorator/group.js");
+const { concatenateRoutePattern, getControllerRouteGroup } = require("../utils/route/route.utils.js");
 
 /**
  * @typedef {import('../httpContext.js')} HttpContext
@@ -73,6 +75,11 @@ module.exports = class HttpController extends BaseController {
     }
 
     static _init() {
+        
+        if (this.expressRouter !== undefined || this.internalRouter !== undefined) {
+
+            return;
+        }
 
         this.expressRouter = express.Router();
 
@@ -97,8 +104,8 @@ module.exports = class HttpController extends BaseController {
 
     static registerRoutes() {
 
-        const exprRouter = this.router;
-        const internalRouter = this.filterRouter;
+        const exprRouter = this.expressRouter;
+        const internalRouter = this.internalRouter;
         const routeMap = this.routeMap;
 
         if (!exprRouter) {
@@ -108,12 +115,14 @@ module.exports = class HttpController extends BaseController {
 
         const methods = getRegisteredMethods(this);
 
-        for (const fn of methods) {
-
+        const routeGroup = getControllerRouteGroup(this);
+        console.log(methods)
+        for (const fn of methods || []) {
+            console.log(1)
             const route = getRoute(fn);
 
             for (const entry of route.all.entries()) {
-                //
+                console.log(2)
                 const [pattern, verbChain] = entry;
                 
                 if (typeof pattern !== 'string' || typeof verbChain !== 'number') {
@@ -121,16 +130,21 @@ module.exports = class HttpController extends BaseController {
                     continue;
                 }
 
-                routeMap.map(pattern, route);                
-
-                const verbList = convertToVerbList(verbChain);
-                
-                for (const verb of verbList || []) {
-
+                for (const prefix of routeGroup?.prefixes || ['']) {
+                    console.log(3, prefix)
+                    const fullPattern = concatenateRoutePattern(prefix, pattern);
                     
-                    exprRouter[verb](pattern, generateExpressHandler(this, fn));
-                    internalRouter[verb](pattern, generateInternalHandler(this, fn.name));
-                }
+                    routeMap.map(fullPattern, route);
+
+                    const verbList = convertToVerbList(verbChain);
+
+                    for (const verb of verbList || []) {
+                        console.log(4, verb)
+                        exprRouter[verb](fullPattern, generateExpressHandler(this, fn));
+                        //internalRouter[verb](pattern, generateInternalHandler(this, fn.name));
+                        internalRouter[verb](fullPattern, generateInternalHandler(this, fn.name));
+                    }
+                }                
             }
         }
     }
@@ -148,11 +162,6 @@ module.exports = class HttpController extends BaseController {
     }
 
     handle() {
-        
-        // /**@type {express.Router} */
-        // const internalRouter = self(this).filterRouter;
-
-        // const r = internalRouter.handle(req, res, () => {});
 
         if (!this.#requestMatch()) {
             
@@ -174,11 +183,11 @@ module.exports = class HttpController extends BaseController {
 
         return hasControllerMetadata(req, this);
     }
+
     #resolve() {
 
         const methods = this.#resolveRoutesMetadata();
         
-
         return this.#treat(methods.values());
     }
     
@@ -191,15 +200,15 @@ module.exports = class HttpController extends BaseController {
         let lastHandledValue;
 
         let iteration = _iterator.next();
-
+        
         while (!iteration.done) {
             
-            const fn = iteration.value;
+            const fn = iteration.value; 
 
             //const handledResult = fn.call(this);
 
             lastHandledValue = fn.call(this);
-
+            
             if (lastHandledValue instanceof Promise) {
 
                 return this.#handlingProgress = lastHandledValue.then((function(actionResult) {
@@ -231,7 +240,7 @@ module.exports = class HttpController extends BaseController {
         const currentPattern = req.route.path;
 
         const metadatas = routeMap.get(currentPattern);
-
+        
         return this.#mapRouteMetadataToMethods(metadatas);
     }
 

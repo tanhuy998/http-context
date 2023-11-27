@@ -2,24 +2,19 @@ const Context = require('isln/context');
 
 const RequestCoordinator = require('./coordinator/requestCoordinator.js');
 const ResponseCoordinator = require('./coordinator/responseCoordinator.js');
-const { Breakpoint } = require('isln/pipeline/index.js');
+//const { Breakpoint, Pipeline } = require('isln/pipeline/index.js');
 const { ErrorHandler, ContextHandler } = require('isln/handler/index.js');
 const {mainContextHandler} = require('./expressHandler.js');
 const endpointFilter = require('./handler/endpointFilter.js');
 const express = require('express');
+const Pipeline = require('isln/src/dependencies/pipeline/pipeline.js');
 
 /**
  * @typedef {import('./controller/httpController.js')} HttpController
  */
 module.exports = class HttpContext extends Context {
 
-    static #lock = false;
-
-    static get isLocked() {
-
-        return this.#lock;
-    }
-
+    /**@type {Set<typeof HttpController>} */
     static controllers = new Set();
 
     static {
@@ -34,12 +29,16 @@ module.exports = class HttpContext extends Context {
 
     static #registerControllers() {
 
+        const controllerPipeline = new Pipeline();
+
         for (const Controller of this.controllers.values() ?? []) {
 
             Controller._init();
             
-            this.pipeline.addPhase().setHandler(Controller).build();
-        } 
+            controllerPipeline.addPhase().setHandler(Controller).build();
+        }
+        
+        this.pipeline.addPhase().use(controllerPipeline).build();
     }
 
     /**
@@ -73,21 +72,14 @@ module.exports = class HttpContext extends Context {
         this.pipeline.onError(...errorHandlers);   
     }
 
-    static begin() {
+    static #done() {
 
-        //this.#registerControllers();
-
-        if (typeof super._lock === 'function') {
-
-            super._lock();
-        }        
-
-        this.#lock = true;
+        this.__lock();
     }
 
     static serve() {
 
-        this.begin();
+        //this.begin();
 
         this.#registerTopMiddlewares();
 
@@ -98,6 +90,8 @@ module.exports = class HttpContext extends Context {
         this.#registerControllers();
 
         this.#registerPostActionFilters();
+
+        this.#done();
 
         return mainContextHandler(this);
     }
