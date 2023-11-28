@@ -8,6 +8,14 @@ const autowired = require('isln/decorator/autowired.js');
 @Route.group('/admin/:user')
 class Controller extends HttpController{
 
+
+    @Route.get('/index')
+    anotherIndex() {
+
+        console.log('another index')
+    }
+
+
     @autowired
     @Route.get('/index/:option')
     @paramsType(IGet)
@@ -20,6 +28,8 @@ class Controller extends HttpController{
 
         res.send('done');
     }
+
+    
 
     @Route.get('/')
     default() {

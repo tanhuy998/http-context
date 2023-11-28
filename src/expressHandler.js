@@ -1,7 +1,8 @@
 const HttpContext = require('isln/context');
-const { initControllerMetadata } = require('./utils/requestMetadata.js');
+const { initControllerMetadata, initRequestMetadata } = require('./utils/requestMetadata.js');
 const { applyFilter } = require('./utils/controllerFilter.js');
 const {Breakpoint} = require('isln/pipeline');
+const metadata = require('isln/src/utils/metadata.js');
 
 /**
  * @typedef {import('./controller/httpController.js')} HttpController
@@ -21,7 +22,7 @@ function generateExpressHandler(_controllerClass, _func) {
     // }
 
     return async function (req, res, next) {
-
+        
         try {
 
             const httpContext = new HttpContext(req, res);
@@ -53,29 +54,56 @@ function generateExpressHandler(_controllerClass, _func) {
  * @param {Array<Function>} _filters
  * @returns 
  */
-function generateInternalHandler(_controllerClass, _method, _filters = []) {
+function generateInternalHandler(_controllerClass, _controllerPath, _filters = []) {
     
     return function controllerFilter(req, res, next) {
-        
+
+        const currentRoute = req.route;
+
+        if (currentRoute?.path !== _controllerClass) {
+
+            next();
+        }
+
         try {
+            
             /**
              * applying controller decision filter
              */
             applyFilter({request: req, response: res}, _filters);
 
-            
+            const wrapperMeta = metadata(req);
+
             const meta = initControllerMetadata(req, _controllerClass);
             
-            const currentRoute = req.route;
-
             meta.route = currentRoute;
-            meta.params = merge(meta.params ?? {} , req.params ?? {});
+            meta.params = merge(meta.params ?? {} , wrapperMeta.params ?? {}, req.params ?? {});
             
             next();
         }
         catch(error) {
+            
+            next(error);
+        }
+    }
+}
 
+function generatRouteGroupHandler(_filters = []) {
+
+    return function groupHandler(req, res, next) {
+        try {
+
+            applyFilter({ request: req, response: res }, _filters);
+            
+            const wrapper = initRequestMetadata(req);
+            
+            wrapper.params = merge(wrapper ?? {}, req.params ?? {});
+            
             next();
+        }
+        catch (e) {
+
+            next(e);
         }
     }
 }
@@ -116,4 +144,4 @@ function mainContextHandler(Context) {
     }
 }
 
-module.exports = {generateExpressHandler, generateInternalHandler, mainContextHandler}
+module.exports = {generateExpressHandler, generateInternalHandler, mainContextHandler, generatRouteGroupHandler}

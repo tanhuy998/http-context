@@ -142,8 +142,8 @@ module.exports = class HttpController extends BaseController {
                 
                 for (const verb of verbList || []) {
                     
-                    exprRouter[verb](pattern, generateExpressHandler(this, fn));
-                    internalRouter[verb](pattern, generateInternalHandler(this, fn.name));
+                    exprRouter[verb](pattern, generateExpressHandler(this, pattern));
+                    internalRouter[verb](pattern, generateInternalHandler(this, pattern));
                 }               
             }
         }
@@ -163,18 +163,25 @@ module.exports = class HttpController extends BaseController {
 
     handle() {
         
-        if (!this.#requestMatch()) {
+        try {
 
-            return;
+            if (!this.#requestMatch()) {
+
+                return;
+            }
+    
+            /**
+             * using RouteMap to get the exact method for handling the current route;
+             */
+    
+            this.#resolve();
+    
+            return this.#handlingProgress;
         }
+        catch(e) {
 
-        /**
-         * using RouteMap to get the exact method for handling the current route;
-         */
-
-        this.#resolve();
-
-        return this.#handlingProgress;
+            console.log(e)
+        }
     }
 
     #requestMatch() {
