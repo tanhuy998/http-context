@@ -1,17 +1,15 @@
 const BaseController = require("./baseController");
 const express = require('express');
-const {hasRoute, getRegisteredMethods, getRoute} = require('../utils/httpRoute.js');
-const RouteMetadata = require("../utils/routeMetadata.js");
-const Context = require("isln/context/index.js");
+const {getRegisteredMethods, getRoute} = require('../utils/route/httpRoute.js');
+const RouteMetadata = require("../utils/route/routeMetadata.js");
 const HttpContext = require("../httpContext.js");
 const self = require('reflectype/src/utils/self.js');
 const {convertToVerbList} = require('../utils/httpMethodEncoding.js');
-const RouteMap = require("../utils/routeMap.js");
+const RouteMap = require("../utils/route/routeMap.js");
 
 const {generateExpressHandler, generateInternalHandler} = require('../expressHandler.js');
-const { getRequestMetadata, hasControllerMetadata } = require("../utils/requestMetadata.js");
-const { currentGroup } = require("../decorator/group.js");
-const { concatenateRoutePattern, getControllerRouteGroup } = require("../utils/route/route.utils.js");
+const { hasControllerMetadata } = require("../utils/requestMetadata.js");
+const { getControllerRouteGroup } = require("../utils/route/route.utils.js");
 
 /**
  * @typedef {import('../httpContext.js')} HttpContext
@@ -37,6 +35,7 @@ module.exports = class HttpController extends BaseController {
     /**@type {RouteMap} */
     static routeMap;
 
+    /**@type {Symbol} */
     static id;
 
     static get filterRouter() {
@@ -45,8 +44,10 @@ module.exports = class HttpController extends BaseController {
 
             this._init();
         }
+        
+        const routeGroup = getControllerRouteGroup(this);
 
-        return this.internalRouter;
+        return routeGroup?.mountGroup(this.internalRouter) ?? this.internalRouter;
     }
 
     static get router() {
@@ -56,7 +57,9 @@ module.exports = class HttpController extends BaseController {
             this._init();
         }
 
-        return this.expressRouter;
+        const routeGroup = getControllerRouteGroup(this);
+
+        return routeGroup?.mountGroup(this.expressRouter) ?? this.expressRouter;
     }
 
     static get feature() {
@@ -102,6 +105,11 @@ module.exports = class HttpController extends BaseController {
         this.routeMap = new RouteMap();
     }
 
+    /**
+     * setups route that declared on each method except route group
+     * 
+     * @returns 
+     */
     static registerRoutes() {
 
         const exprRouter = this.expressRouter;
@@ -114,15 +122,13 @@ module.exports = class HttpController extends BaseController {
         }
 
         const methods = getRegisteredMethods(this);
-
-        const routeGroup = getControllerRouteGroup(this);
-        console.log(methods)
+        
         for (const fn of methods || []) {
-            console.log(1)
+            
             const route = getRoute(fn);
 
             for (const entry of route.all.entries()) {
-                console.log(2)
+                
                 const [pattern, verbChain] = entry;
                 
                 if (typeof pattern !== 'string' || typeof verbChain !== 'number') {
@@ -130,21 +136,15 @@ module.exports = class HttpController extends BaseController {
                     continue;
                 }
 
-                for (const prefix of routeGroup?.prefixes || ['']) {
-                    console.log(3, prefix)
-                    const fullPattern = concatenateRoutePattern(prefix, pattern);
+                routeMap.map(pattern, route);                
+
+                const verbList = convertToVerbList(verbChain);
+                
+                for (const verb of verbList || []) {
                     
-                    routeMap.map(fullPattern, route);
-
-                    const verbList = convertToVerbList(verbChain);
-
-                    for (const verb of verbList || []) {
-                        console.log(4, verb)
-                        exprRouter[verb](fullPattern, generateExpressHandler(this, fn));
-                        //internalRouter[verb](pattern, generateInternalHandler(this, fn.name));
-                        internalRouter[verb](fullPattern, generateInternalHandler(this, fn.name));
-                    }
-                }                
+                    exprRouter[verb](pattern, generateExpressHandler(this, fn));
+                    internalRouter[verb](pattern, generateInternalHandler(this, fn.name));
+                }               
             }
         }
     }
@@ -162,16 +162,16 @@ module.exports = class HttpController extends BaseController {
     }
 
     handle() {
-
+        
         if (!this.#requestMatch()) {
-            
+
             return;
         }
 
         /**
          * using RouteMap to get the exact method for handling the current route;
          */
-        
+
         this.#resolve();
 
         return this.#handlingProgress;
@@ -190,7 +190,25 @@ module.exports = class HttpController extends BaseController {
         
         return this.#treat(methods.values());
     }
-    
+
+    /**
+     * 
+    */
+    #resolveRoutesMetadata() {
+
+        const req = this.httpContext.request;
+
+        /**@type {RouteMap} */
+        const routeMap = self(this).routeMap;
+
+        /**@type {string} */
+        const currentRoutePattern = req.route.path;
+
+        const metadatas = routeMap.get(currentRoutePattern);
+
+        return this.#mapRouteMetadataToMethods(metadatas);
+    }
+
     /**
      * 
      * @param {Iterator<Function>} _iterator 
@@ -204,8 +222,6 @@ module.exports = class HttpController extends BaseController {
         while (!iteration.done) {
             
             const fn = iteration.value; 
-
-            //const handledResult = fn.call(this);
 
             lastHandledValue = fn.call(this);
             
@@ -226,23 +242,6 @@ module.exports = class HttpController extends BaseController {
         return this.#handlingProgress = lastHandledValue;
     }
 
-    /**
-     * 
-     */
-    #resolveRoutesMetadata() {
-
-        const req = this.httpContext.request;
-
-        /**@type {RouteMap} */
-        const routeMap = self(this).routeMap;
-        
-        /**@type {string} */
-        const currentPattern = req.route.path;
-
-        const metadatas = routeMap.get(currentPattern);
-        
-        return this.#mapRouteMetadataToMethods(metadatas);
-    }
 
     /**
      * 
@@ -251,7 +250,7 @@ module.exports = class HttpController extends BaseController {
      * @returns {Array<Function>}
      */
     #mapRouteMetadataToMethods(_meta) {
-
+        
         /**@type {Array<Function>} */
         const ret = [];
 
@@ -259,22 +258,22 @@ module.exports = class HttpController extends BaseController {
         
         /**@type {string} */
         const httpMethod = httpRequest.method;
+
         /**@type {string} */
         const reqPattern = httpRequest.route.path;
 
+        
+        
         for (/**@type {RouteMetadata} */ const routeMeta of _meta?.values() ?? []) {
-
+            //
             if (!routeMeta.match(reqPattern, httpMethod)) {
 
                 continue;
             }
 
-            //
-            // const fn = routeMeta.mappedFunction;
-
             const methodName = routeMeta.mappedMethodName;
             const fn = this[methodName];
-
+            
             if (typeof fn === 'function') {
 
                 ret.push(fn);

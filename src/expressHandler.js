@@ -1,6 +1,5 @@
 const HttpContext = require('isln/context');
-// const {METADATA} = require('reflectype/src/constants.js');
-const {initRequestMetadata, initControllerMetadata, getRequestMetadata} = require('./utils/requestMetadata.js');
+const { initControllerMetadata } = require('./utils/requestMetadata.js');
 const { applyFilter } = require('./utils/controllerFilter.js');
 const {Breakpoint} = require('isln/pipeline');
 
@@ -38,8 +37,6 @@ function generateExpressHandler(_controllerClass, _func) {
 
             await _func.call(controllerObj, ...(args ?? []));
 
-            //await DI.invoke(controllerObj, _func, httpContext);
-
             next();
         }
         catch (error) {
@@ -57,41 +54,35 @@ function generateExpressHandler(_controllerClass, _func) {
  * @returns 
  */
 function generateInternalHandler(_controllerClass, _method, _filters = []) {
-
+    
     return function controllerFilter(req, res, next) {
-
+        
         try {
             /**
              * applying controller decision filter
              */
             applyFilter({request: req, response: res}, _filters);
 
-            //const meta = initMetadata(req);
+            
             const meta = initControllerMetadata(req, _controllerClass);
             
-            //console.log(getRequestMetadata(req));
-
             const currentRoute = req.route;
 
             meta.route = currentRoute;
-            meta.params = req.params;
-            console.log(meta);
+            meta.params = merge(meta.params ?? {} , req.params ?? {});
+            
             next();
         }
         catch(error) {
-            console.log(error);
+
             next();
         }
     }
+}
 
-    // function initMetadata(req) {
+function merge(target, ...sources) {
 
-    //     const wrapper = req[METADATA] ??= {};
-
-    //     const id = _controllerClass.id;
-
-    //     return actualMeta = wrapper[id] ??= {};
-    // }
+    return Object.assign(target, ...sources);
 }
 
 /**

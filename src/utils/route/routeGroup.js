@@ -1,4 +1,10 @@
 const isIterable = require('reflectype/src/utils/isIterable.js');
+const express = require('express');
+const { generateInternalHandler } = require('../../expressHandler');
+
+/**
+ * @typedef {import('../../controller/httpController.js')} HttpController
+ */
 
 module.exports = class RouteGroup {
 
@@ -7,6 +13,9 @@ module.exports = class RouteGroup {
 
     /**@type {Array<Function>} */
     #middleware;
+
+    /**@type {typeof HttpController} */
+    #controllerClass;
 
     /**@returns {Array<Function>} */
     get middleware() {
@@ -27,6 +36,34 @@ module.exports = class RouteGroup {
     constructor(..._prefixes) {
 
         this.#prefixes = _prefixes.length > 0 ? new Set(_prefixes) : new Set(['/']);
+    }
+
+    /**
+     * 
+     * @param {typeof HttpController} _ControllerClass 
+     */
+    setController(_ControllerClass) {
+
+        this.#controllerClass = _ControllerClass;
+    }
+
+    mountGroup(_controllerRouter) {
+
+        const groupRouter = express.Router();
+
+        const ControllerClass = this.#controllerClass;
+        console.log(['mount group'], ControllerClass.id);
+        for (const prefix of this.#prefixes.values()) {
+            
+            const group = express.Router();
+
+            group.use(prefix, generateInternalHandler(ControllerClass));
+            group.use(prefix, _controllerRouter);
+
+            groupRouter.use(group);
+        }
+
+        return groupRouter;
     }
 
     /**

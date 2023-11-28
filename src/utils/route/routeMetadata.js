@@ -1,4 +1,4 @@
-const {addVerb, hasVerb} = require('./httpMethodEncoding.js');
+const {addVerb, hasVerb} = require('../httpMethodEncoding.js');
 module.exports = class RouteMetadata {
 
     /**@type {Map<string, number>} */

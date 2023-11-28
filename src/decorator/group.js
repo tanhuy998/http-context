@@ -1,5 +1,5 @@
 const metadata = require('isln/src/utils/metadata');
-const RouteGroup = require('../routeGroup/routeGroup');
+const RouteGroup = require('../utils/route/routeGroup');
 const { initRouteGroup } = require('../utils/route/route.utils');
 
 /**@type {RouteGroup} */
@@ -19,6 +19,8 @@ function group(..._paths) {
         }
 
         initRouteGroup(_, currGroup);
+
+        currGroup.setController(_);
 
         delete currGroup;
 

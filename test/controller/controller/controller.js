@@ -5,11 +5,11 @@ const Something = require('../component/something.js');
 const IGet = require('../interface/iGet.js');
 const autowired = require('isln/decorator/autowired.js');
 
-@Route.group('/admin')
+@Route.group('/admin/:user')
 class Controller extends HttpController{
 
     @autowired
-    @Route.get('/')
+    @Route.get('/index/:option')
     @paramsType(IGet)
     index(_comp) {
 
@@ -19,6 +19,16 @@ class Controller extends HttpController{
         console.log('test controller', _comp.get());
 
         res.send('done');
+    }
+
+    @Route.get('/')
+    default() {
+
+        console.log('default route')
+
+        const res = this.context.response;
+
+        res.send('done default')
     }
 }
 

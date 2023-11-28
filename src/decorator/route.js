@@ -1,5 +1,4 @@
-const {registerRoute} = require('../utils/httpRoute.js');
-const { concatenateRoutePattern } = require('../utils/route/route.utils.js');
+const { concatenateRoutePattern, registerRoute } = require('../utils/route/route.utils.js');
 const { group, currentGroup } = require('./group.js');
 
 const httpVerbs = [
@@ -22,7 +21,7 @@ function checkRouteExist(_verb, _pattern) {
 
     for (const prefix of currGroup.prefixes) {
 
-        const fullRoute = `${_verb} ${concatenateRoutePattern(prefix, _pattern)}`;
+        const fullRoute = `${_verb} ${concatenateRoutePattern(prefix, _pattern)}`.replace(/:\w+/g,'{param}');
     
         if (routeList.has(fullRoute)) {
     

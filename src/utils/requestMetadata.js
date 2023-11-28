@@ -13,7 +13,7 @@ function checkRequest(req) {
 function initRequestMetadata(req) {
 
     checkRequest(req);
-
+    
     return req[METADATA] ??= {};
 }
 
@@ -22,7 +22,7 @@ function initControllerMetadata(req, _controller) {
     const wrapper = initRequestMetadata(req);
 
     const id = resolveControllerId(_controller);
-
+    
     return actualMeta = wrapper[id] ??= {};
 }
 
