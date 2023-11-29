@@ -12,6 +12,8 @@ module.exports = class RouteMap {
      */
     #patterns = new Map();
 
+    #regex = new Set();
+
     constructor() {
 
 
@@ -61,6 +63,39 @@ module.exports = class RouteMap {
 
         allMapped.get(_pattern).add(_routeMeta);
 
+        this.#generateRegex(_pattern);
+
         return true;
+    }
+
+    /**
+     * 
+     * @param {string} _path 
+     * @returns {boolean}
+     */
+    match(_path) {
+        
+        for (const regex of this.#regex.values()) {
+            
+            if (_path.match(regex)) {
+                
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 
+     * @param {string} _pattern 
+     */
+    #generateRegex(_pattern) {
+
+        _pattern = `^${_pattern.replace(/:\w+/g, '\w+')}$`;
+
+        const regexPattern = new RegExp(_pattern, 'g');
+
+        this.#regex.add(regexPattern);
     }
 }

@@ -51,7 +51,7 @@ module.exports = class HttpContext extends Context {
 
             if (controller instanceof ErrorHandler) {
 
-                this.pipeline.onError(controller);
+                this.pipeline.onError(controller);  
 
                 continue;
             }
@@ -83,7 +83,7 @@ module.exports = class HttpContext extends Context {
 
         this.#registerTopMiddlewares();
 
-        this.#registerEndpointFilters();
+        //this.#registerEndpointFilters();
 
         this.#registerPreActionFilters();
 
@@ -93,7 +93,9 @@ module.exports = class HttpContext extends Context {
 
         this.#done();
 
-        return mainContextHandler(this);
+        const endpointFilter = this.#retrieveEndpointFilters();
+
+        return [endpointFilter, mainContextHandler(this)];
     }
 
     static #registerTopMiddlewares() {

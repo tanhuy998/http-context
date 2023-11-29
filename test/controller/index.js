@@ -12,12 +12,13 @@ const port = 3000;
 
 const HttpContext = require('../../src/httpContext');
 const Controller = require('./controller/controller');
+const Controller2 = require('./controller/controller2.js');
 const IGet = require('./interface/iGet');
 const Something = require('./component/something');
 
 //HttpContext.pipeline.addPhase().setHandler(Controller).build();
 
-HttpContext.use(Controller);
+HttpContext.use(Controller, Controller2);
 HttpContext.components.bind(IGet, Something);
 
 //app.use(Controller.serve());
@@ -32,4 +33,21 @@ app.listen(port, (error) => {
     }
 
     console.log('app listen on port', port);
+
+    cmd_cls();
 })
+
+function cmd_cls() {
+
+    const stdin = process.stdin;
+
+    stdin.on('data', function(chunk) {
+
+        const cmd = chunk.toString();
+        
+        if (cmd.match(/^clear\n*/g)) {
+            
+            console.clear();
+        }
+    });
+}

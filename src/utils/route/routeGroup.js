@@ -57,7 +57,7 @@ module.exports = class RouteGroup {
             
             const group = express.Router();
 
-            group.use(prefix, generatRouteGroupHandler());
+            group.use(prefix, generatRouteGroupHandler(ControllerClass));
             group.use(prefix, _controllerRouter);
 
             groupRouter.use(group);

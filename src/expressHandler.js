@@ -38,11 +38,11 @@ function generateExpressHandler(_controllerClass, _func) {
 
             await _func.call(controllerObj, ...(args ?? []));
 
-            next();
+            return next();
         }
         catch (error) {
 
-            next(error);
+            return next(error);
         }
     }
 }
@@ -59,12 +59,12 @@ function generateInternalHandler(_controllerClass, _controllerPath, _filters = [
     return function controllerFilter(req, res, next) {
 
         const currentRoute = req.route;
+        
+        if (currentRoute?.path !== _controllerPath) {
 
-        if (currentRoute?.path !== _controllerClass) {
-
-            next();
+            return next();
         }
-
+        
         try {
             
             /**
@@ -77,36 +77,49 @@ function generateInternalHandler(_controllerClass, _controllerPath, _filters = [
             const meta = initControllerMetadata(req, _controllerClass);
             
             meta.route = currentRoute;
-            meta.params = merge(meta.params ?? {} , wrapperMeta.params ?? {}, req.params ?? {});
-            
-            next();
+            meta.params = merge(meta?.params ?? {} , wrapperMeta?.params ?? {}, req.params ?? {});
+
+            return next();
         }
         catch(error) {
             
-            next(error);
+            
+            return next(error);
         }
     }
 }
 
-function generatRouteGroupHandler(_filters = []) {
+function generatRouteGroupHandler(_ControllerClass, _filters = []) {
+
+    const controllerRouteMap = _ControllerClass.routeMap;
 
     return function groupHandler(req, res, next) {
-        try {
 
+        const path = req.path;
+        
+        if (!controllerRouteMap?.match(path)) {
+
+            return next();
+        }
+    
+        try {
+            
             applyFilter({ request: req, response: res }, _filters);
             
             const wrapper = initRequestMetadata(req);
             
             wrapper.params = merge(wrapper ?? {}, req.params ?? {});
             
-            next();
+            return next();
         }
         catch (e) {
 
-            next(e);
+            return next(e);
         }
     }
 }
+
+
 
 function merge(target, ...sources) {
 

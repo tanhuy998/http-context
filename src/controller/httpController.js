@@ -38,6 +38,8 @@ module.exports = class HttpController extends BaseController {
     /**@type {Symbol} */
     static id;
 
+    static routeRegex;
+
     static get filterRouter() {
 
         if (!this.internalRouter) {
@@ -175,7 +177,7 @@ module.exports = class HttpController extends BaseController {
              */
     
             this.#resolve();
-    
+            
             return this.#handlingProgress;
         }
         catch(e) {
@@ -187,7 +189,7 @@ module.exports = class HttpController extends BaseController {
     #requestMatch() {
 
         const req = this.httpContext.request;
-
+        
         return hasControllerMetadata(req, this);
     }
 
@@ -272,7 +274,7 @@ module.exports = class HttpController extends BaseController {
         
         
         for (/**@type {RouteMetadata} */ const routeMeta of _meta?.values() ?? []) {
-            //
+            
             if (!routeMeta.match(reqPattern, httpMethod)) {
 
                 continue;
