@@ -1,5 +1,5 @@
 const HttpContext = require('isln/context');
-const { initControllerMetadata, initRequestMetadata } = require('./utils/requestMetadata.js');
+const { initControllerMetadata, initRequestMetadata, pointController, getPointControllerId } = require('./utils/requestMetadata.js');
 const { applyFilter } = require('./utils/controllerFilter.js');
 const {Breakpoint} = require('isln/pipeline');
 const metadata = require('isln/src/utils/metadata.js');
@@ -35,7 +35,6 @@ function generateExpressHandler(_controllerClass, _func) {
 
             const args = await DI.resolveArguments(_func, httpContext);
 
-
             await _func.call(controllerObj, ...(args ?? []));
 
             return next();
@@ -59,7 +58,10 @@ function generateInternalHandler(_controllerClass, _controllerPath, _filters = [
     return function controllerFilter(req, res, next) {
 
         const currentRoute = req.route;
-        
+
+        /**
+         *  routes could have the same name when they are in different group,
+         */
         if (currentRoute?.path !== _controllerPath) {
 
             return next();
@@ -72,43 +74,38 @@ function generateInternalHandler(_controllerClass, _controllerPath, _filters = [
              */
             applyFilter({request: req, response: res}, _filters);
 
-            const wrapperMeta = metadata(req);
+            const controllerMeta = initControllerMetadata(req, _controllerClass);
 
-            const meta = initControllerMetadata(req, _controllerClass);
+            pointController(req, _controllerClass);
+
+            const wrapperMeta = metadata(req);
             
-            meta.route = currentRoute;
-            meta.params = merge(meta?.params ?? {} , wrapperMeta?.params ?? {}, req.params ?? {});
+            wrapperMeta.params = merge(wrapperMeta?.params ?? {}, req.params ?? {});
+
+            controllerMeta.route = currentRoute;
+            controllerMeta.group = wrapperMeta.group;
 
             return next();
         }
         catch(error) {
-            
             
             return next(error);
         }
     }
 }
 
-function generatRouteGroupHandler(_ControllerClass, _filters = []) {
-
-    const controllerRouteMap = _ControllerClass.routeMap;
+function generatRouteGroupHandler(_ControllerClass, _groupPath, _filters = []) {
 
     return function groupHandler(req, res, next) {
 
-        const path = req.path;
-        
-        if (!controllerRouteMap?.match(path)) {
-
-            return next();
-        }
-    
         try {
             
             applyFilter({ request: req, response: res }, _filters);
             
             const wrapper = initRequestMetadata(req);
             
-            wrapper.params = merge(wrapper ?? {}, req.params ?? {});
+            wrapper.group = _groupPath;
+            wrapper.params = merge(wrapper.params ?? {}, req.params ?? {});
             
             return next();
         }
@@ -134,8 +131,13 @@ function merge(target, ...sources) {
 function mainContextHandler(Context) {
 
     return async function (req, res, next) {
-
+        console.log(['incoming request'])
         try {
+
+            if (!isValidRequest(req, Context)) {
+
+                return next(undefined);
+            }
 
             const httpContext = new Context(req, res);
     
@@ -143,7 +145,7 @@ function mainContextHandler(Context) {
     
             await pipeline.run(httpContext);
     
-            next();
+            return next();
         }
         catch (err) {
 
@@ -152,9 +154,26 @@ function mainContextHandler(Context) {
                 err = err.originError;
             }
 
-            next(err);
+            return next(err);
         }
     }
+}
+
+/**
+ * 
+ * @param {import('express').Request} request 
+ * @param {Typeof HttpContext} _HttpContextCLass 
+ */
+function isValidRequest(request, _HttpContextCLass) {
+
+    const requestControllerId = getPointControllerId(request);
+    console.log(requestControllerId)
+    if (typeof requestControllerId !== 'symbol') {
+
+        return false;
+    }
+
+    return _HttpContextCLass?.hasController(requestControllerId);
 }
 
 module.exports = {generateExpressHandler, generateInternalHandler, mainContextHandler, generatRouteGroupHandler}

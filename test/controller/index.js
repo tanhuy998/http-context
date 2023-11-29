@@ -16,6 +16,8 @@ const Controller2 = require('./controller/controller2.js');
 const IGet = require('./interface/iGet');
 const Something = require('./component/something');
 
+const http = require('node:http');
+
 //HttpContext.pipeline.addPhase().setHandler(Controller).build();
 
 HttpContext.use(Controller, Controller2);
@@ -25,17 +27,15 @@ HttpContext.components.bind(IGet, Something);
 
 app.use(HttpContext.serve());
 
-app.listen(port, (error) => {
+http.createServer(app)
+    .on('listening', cmd_cls)
+    .on('listening', commandLineTitle)
+    .listen(port);
 
-    if (error) {
+function commandLineTitle() {
 
-        throw error;
-    }
-
-    console.log('app listen on port', port);
-
-    cmd_cls();
-})
+    console.log('server listen on port', port);
+}
 
 function cmd_cls() {
 
@@ -48,6 +48,7 @@ function cmd_cls() {
         if (cmd.match(/^clear\n*/g)) {
             
             console.clear();
+            commandLineTitle();
         }
     });
 }

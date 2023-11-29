@@ -7,7 +7,7 @@
     "test-static-controller": "npx babel ./test/controller/index.js > ./test/controller/compiled.js && node ./test/controller/compiled.js",
     "test-controller": "node ./test/controller",
     "test-verbs-encoding": "node ./test/httpVerbsEncdoing",
-    "test-ci": "npx nodemon ./test/controller/index.js"
+    "ci-test-controller": "npx nodemon ./test/controller/index.js"
   },
   "author": "",
   "license": "MIT",

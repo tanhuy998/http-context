@@ -2,7 +2,6 @@ const BaseController = require("./baseController");
 const express = require('express');
 const {getRegisteredMethods, getRoute} = require('../utils/route/httpRoute.js');
 const RouteMetadata = require("../utils/route/routeMetadata.js");
-const HttpContext = require("../httpContext.js");
 const self = require('reflectype/src/utils/self.js');
 const {convertToVerbList} = require('../utils/httpMethodEncoding.js');
 const RouteMap = require("../utils/route/routeMap.js");
@@ -10,12 +9,13 @@ const RouteMap = require("../utils/route/routeMap.js");
 const {generateExpressHandler, generateInternalHandler} = require('../expressHandler.js');
 const { hasControllerMetadata } = require("../utils/requestMetadata.js");
 const { getControllerRouteGroup } = require("../utils/route/route.utils.js");
+const { BASE_HTTP_CONTROLLER } = require("./constant.js");
 
 /**
  * @typedef {import('../httpContext.js')} HttpContext
  */
 
-module.exports = class HttpController extends BaseController {
+const proto = module.exports = class HttpController extends BaseController {
     
     /**
      * For static call handling without pipeline
@@ -36,9 +36,16 @@ module.exports = class HttpController extends BaseController {
     static routeMap;
 
     /**@type {Symbol} */
-    static id;
+    static perSubClassId;
 
     static routeRegex;
+
+    static get id() {
+
+        this._initPerSubClassId();
+
+        return this.perSubClassId;
+    }
 
     static get filterRouter() {
 
@@ -95,11 +102,34 @@ module.exports = class HttpController extends BaseController {
             after: express.Router()
         };
 
-        this.id = typeof this.id === 'symbol' ? this.id : Symbol(this.name);
+        //this.id = typeof this.id === 'symbol' ? this.id : Symbol(this.name);
+
+        this._initPerSubClassId();
 
         this.initRouteMap();
 
         this.registerRoutes();
+    } 
+
+    static _initPerSubClassId() {
+
+        const fieldName = 'perSubClassId';
+
+        const descriptor = Object.getOwnPropertyDescriptor(this, fieldName);
+
+        if (!descriptor?.configurable && 
+            !descriptor?.writable && 
+            typeof descriptor?.value === 'symbol') {
+
+                return;
+        }
+
+        Object.defineProperty(this, fieldName, {
+            configurable: false,
+            writable: false,
+            enumerable: true,
+            value: Symbol(this.name)
+        });
     }
 
     static initRouteMap() {
@@ -325,3 +355,10 @@ module.exports = class HttpController extends BaseController {
     }
 }
 
+
+Object.defineProperty(proto, 'base', {
+    configurable: false,
+    writable: false,
+    enumerable: true,
+    value: BASE_HTTP_CONTROLLER
+});

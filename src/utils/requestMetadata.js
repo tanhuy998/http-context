@@ -1,6 +1,19 @@
 const {METADATA} = require('reflectype/src/constants.js');
 const self = require('reflectype/src/utils/self.js');
 const { checkController, resolveControllerId } = require('./controller');
+const metadata = require('isln/src/utils/metadata');
+
+module.exports = {
+    pointController, 
+    initRequestMetadata, 
+    getRequestMetadata, 
+    getControllerMetadata, 
+    addMetaForController, 
+    hasControllerMetadata, 
+    hasMetadata, 
+    initControllerMetadata,
+    getPointControllerId
+};
 
 function checkRequest(req) {
 
@@ -23,7 +36,25 @@ function initControllerMetadata(req, _controller) {
 
     const id = resolveControllerId(_controller);
     
-    return actualMeta = wrapper[id] ??= {};
+    const controllerMeta =  wrapper[id] ??= {};
+
+    return controllerMeta;
+}
+
+function pointController(req, _controller) {
+
+    const wrapper = initRequestMetadata(req);
+
+    const id = resolveControllerId(_controller);
+    
+    wrapper.pointedControllerId = id;
+}
+
+function getPointControllerId(req, _controller) {
+
+    const wrapper = metadata(req);
+
+    return wrapper?.pointedControllerId;
 }
 
 function getRequestMetadata(req) {
@@ -114,4 +145,3 @@ function match(target = {}, toCompared = {}) {
     return true;
 }
 
-module.exports = {initRequestMetadata, getRequestMetadata, getControllerMetadata, addMetaForController, hasControllerMetadata, hasMetadata, initControllerMetadata};
