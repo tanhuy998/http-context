@@ -14,6 +14,9 @@ const HttpController = require('./controller/httpController.js');
 const self = require('reflectype/src/utils/self.js');
 const isHttpController = require('./controller/isHttpController.js');
 
+const {} = require('express');
+const HttpContextConfigurationBuilder = require('./configuration/httpContext/httpContextConfigurationBuilder.js');
+
 /**
  * @typedef {import('./controller/httpController.js')} HttpController
  */
@@ -24,9 +27,37 @@ module.exports = class HttpContext extends Context {
 
     static contorllerIds = new Set();
 
+    static configuration;
+
+    static configurationSesison;
+
     static {
 
         this.__init();
+    }
+
+    static configure() {
+
+        this.configurationSesison = new HttpContextConfigurationBuilder(this);
+
+        return this.configurationSesison;
+    }
+
+    static setConfiguration(configuration, configSession) {
+
+        if (configSession !== this.configurationSesison) {
+
+            throw new Error('invalid configuration');
+        }
+
+        Object.defineProperty(this, 'configuration', {
+            writable: false,
+            configurable: false,
+            enumerable: false,
+            value: configuration
+        });
+
+        this.configurationSesison = undefined;
     }
 
     static lastStepInitialization() {
@@ -59,7 +90,7 @@ module.exports = class HttpContext extends Context {
             /**
              *  when the passed object is subclass of ErrorController
              */
-            if (controller instanceof ErrorHandler) {
+            if (controller.prototype instanceof ErrorHandler) {
 
                 this.pipeline.onError(controller);  
 
@@ -70,7 +101,8 @@ module.exports = class HttpContext extends Context {
 
                 this.controllers.add(controller);
 
-                if (isHttpController(controller)) {
+                //if (isHttpController(controller)) {
+                if (controller.prototype instanceof HttpController) {
                     
                     this.contorllerIds.add(controller.id);
                 }
@@ -248,6 +280,16 @@ module.exports = class HttpContext extends Context {
         return this.#route;   
     }
 
+    get session() {
+
+
+    }
+
+    get clientSession() {
+
+        return this.#request.session;
+    }
+
     constructor(req, res) {
 
         super();
@@ -269,7 +311,7 @@ module.exports = class HttpContext extends Context {
     #registerRequestAndResponse() {
 
         //
-        const contextSession = this.session;
+        const contextSession = super.session;
 
         contextSession.save(RequestCoordinator.key, this.#request);
         contextSession.save(ResponseCoordinator.key, this.#response);
