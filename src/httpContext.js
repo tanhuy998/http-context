@@ -16,10 +16,15 @@ const isHttpController = require('./controller/isHttpController.js');
 
 const {} = require('express');
 const HttpContextConfigurationBuilder = require('./configuration/httpContext/httpContextConfigurationBuilder.js');
+const HttpContextConfigurator = require('./configuration/httpContext/httpContextConfigurator.js');
+const HttpContextConfiguration = require('./configuration/httpContext/httpContextConfiguration.js');
 
 /**
  * @typedef {import('./controller/httpController.js')} HttpController
+ * @typedef {import('./configuration/httpContext/httpContextConfiguration.js')} HttpContextConfiguration
  */
+
+
 module.exports = class HttpContext extends Context {
 
     /**@type {Set<typeof HttpController>} */
@@ -27,8 +32,10 @@ module.exports = class HttpContext extends Context {
 
     static contorllerIds = new Set();
 
+    /**@type {HttpContextConfiguration | HttpContextConfigurator} */
     static configuration;
 
+    /**@type {HttpContextConfigurationBuilder}*/
     static configurationSesison;
 
     static {
@@ -58,6 +65,23 @@ module.exports = class HttpContext extends Context {
         });
 
         this.configurationSesison = undefined;
+    }
+
+    static _beginServe() {
+
+        const configuration = this.configuration;
+
+        if (!(configuration instanceof HttpContextConfiguration)) {
+
+            throw new Error('there is no configuration on http context to serve the application');
+        }
+
+        if(!configuration.mounted) {
+
+            return new HttpContextConfigurator(this).serve();
+        }
+        
+        return configuration.servingFactors;
     }
 
     static lastStepInitialization() {

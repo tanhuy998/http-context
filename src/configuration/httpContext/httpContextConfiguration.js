@@ -9,6 +9,20 @@ module.exports = class HttpContextConfiguration {
 
     #authScheme;
 
+    #servingFactors;
+
+    #mounted = false;
+
+    get mounted() {
+
+        return this.#mounted;
+    }
+
+    get servingFactors() {
+
+        return this.#servingFactors;
+    }
+
     get hasAuth() {
 
         return typeof this.#authScheme === 'function';
@@ -62,5 +76,18 @@ module.exports = class HttpContextConfiguration {
         }
         
         return this.#controllerIds.has(controllerId);
+    }
+
+    /**
+     * 
+     * @param {Iterable<Function>} list 
+     */
+    setServingFactors(list) {
+
+        if (Array.isArray(list) && list.length > 0) {
+
+            this.#mounted = true;
+            this.#servingFactors = list;
+        }
     }
 }

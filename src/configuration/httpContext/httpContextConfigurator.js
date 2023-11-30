@@ -1,63 +1,116 @@
+'use strict'
+
 /**
- * @typedef {import('./httpContextConfiguration.js')} HttpContextConfiguration
+ * @typedef {import('../../httpContext.js') HttpContext
  */
+
+const {Pipeline} = require('isln/pipeline');
+const HttpContextConfiguration = require('./httpContextConfiguration.js');
+const express = require('express');
+const {mainContextHandler} = require('../../expressHandler.js');
 
 module.exports = class HttpContextConfigurator {
 
+    /**@type {typeof HttpContext} */
+    #httpContextClass
+
     /**@type {HttpContextConfiguration} */
-    #config;
+    #configuration;
 
-    #httpContext
-
+    #ready = false;
     /**
      * 
-     * @param {HttpContextConfiguration} _config 
+     * @param {typeof HttpContext} _HttpContextClass 
      */
-    constructor(_HttpContextClass, _config) {
+    constructor(_HttpContextClass) {
 
-        this.#config = _config;
+        this.#httpContextClass = _HttpContextClass;
 
         this.#init();
     }
 
     #init() {
 
+        const configuration = this.#httpContextClass.configuration;
 
+        if (!(configuration instanceof HttpContextConfiguration)) {
+
+            throw new TypeError('cannot configure for a class that does not have configaration');
+        }
+
+        this.#configuration = configuration;
     }
 
-    // /**
-    //  * 
-    //  * @param  {...(ErrorHandler | Function)} errorHandlers 
-    //  */
-    // onError(...errorHandlers) {
+    #mount() {
 
-    //     this.pipeline.onError(...errorHandlers);   
-    // }
-
-    #done() {
-
-        this.__lock();
+        this.#registerTopMiddlewares();
+        this.#registerPreActionPhase();
+        this.#registerControllerPhase();
+        this.#registerControllerActionResutFilter();
+        this.#registerErrorHandlers();
+        this.#registerPostActionPhase();
     }
 
     serve() {
 
-        //this.begin();
+        if (this.#ready) {
 
-        this.#registerTopMiddlewares();
+            return this.#configuration.servingFactors;
+        }
 
-        //this.#registerEndpointFilters();
-
-        this.#registerPreActionFilters();
-
-        this.#registerControllers();
-
-        this.#registerPostActionFilters();
-
-        this.#done();
-
+        this.#mount();
+        
         const endpointFilter = this.#retrieveEndpointFilters();
 
-        return [endpointFilter, mainContextHandler(this)];
+        const expressAppHandlers = [endpointFilter, mainContextHandler(this.#httpContextClass)];
+
+        this.#configuration.setServingFactors(expressAppHandlers);
+        this.#ready = true;
+
+        return expressAppHandlers;
+    }
+
+    #retrieveEndpointFilters() {
+
+        //const ret = [];
+
+        const endpointFilter = express.Router();
+
+        for (const filterRouter of this.#retriveControlersInternalRouter()) {
+
+            // ret.push(filterRouter);
+            endpointFilter.use(filterRouter);
+        }
+
+        return endpointFilter;
+    }
+
+
+    #registerControllerActionResutFilter() {
+
+        const httpContextPipeline = this.#httpContextClass.pipeline;
+
+        /**
+         * Controller phase is a pipable phase that is a pipeline of Controllers
+         * and the guarantee that with each incoming request, there is just one Controller 
+         * handles the request despite of being managed to work sequencially. Base on 
+         * the interupt mechanism, when a controller handles a request, it throws an ActionResult 
+         * signal for httpcontext pipeline to catch and handle it.
+         */
+        httpContextPipeline.onError();
+    }
+
+    #registerErrorHandlers() {
+
+        /**@type {Pipeline} */
+        const httpContextPipeline = this.#httpContextClass.pipeline;
+
+        const configuration = this.#configuration;
+
+        for (const handler of configuration.errorHandlers || []) {
+
+            httpContextPipeline.onError(handler);
+        }
     }
 
     #registerTopMiddlewares() {
@@ -70,97 +123,39 @@ module.exports = class HttpContextConfigurator {
 
     }
 
-    #registerEndpointFilters() {
-
-        const filters = this.#retrieveEndpointFilters();
-
-        this.pipeline.addPhase().setHandler(endpointFilter(filters)).build();
-    }
-
-    #registerPreActionFilters() {
+    #registerPreActionPhase() {
 
 
     }
 
-    #registerPostActionFilters() {
+    #registerPostActionPhase() {
 
 
     }
 
-    #retrieveEndpointFilters() {
+    *#retriveControlersInternalRouter() {
 
-        const ret = [];
-
-        for (const filterRouter of this.#controlersInternalRouter()) {
-
-            ret.push(filterRouter);
-        }
-
-        return express.Router().use(ret);
-    }
-
-    #registerControllerInternalRouter(_handlers = []) {
-
-        for (const filterRouter of this.#controlersInternalRouter()) {
-
-            _handlers.push(filterRouter);
-        }
-    }
-
-    *#controlersInternalRouter() {
-
-        for (const ControllerClass of this.controllers.values()) {
+        for (const ControllerClass of this.#configuration.controllers.values()) {
 
             yield ControllerClass.filterRouter;
         }
     }
 
-    lastStepInitialization() {
+    #registerControllerPhase() {
 
-        this.#registerControllers();
-    }
-
-    #registerControllers() {
-
+        const configuration = this.#configuration;
+        
         const controllerPipeline = new Pipeline();
 
-        for (const Controller of this.controllers.values() ?? []) {
+        for (const Controller of configuration.controllers.values() ?? []) {
 
             Controller._init();
             
             controllerPipeline.addPhase().setHandler(Controller).build();
         }
         
-        this.pipeline.addPhase().use(controllerPipeline).build();
+        const httpContextPipeline = this.#httpContextClass.pipeline;
+
+        httpContextPipeline.addPhase().use(controllerPipeline).build();
     }
-
-    // /**
-    //  * 
-    //  * @param  {...(typeof HttpController | typeof ContextHandler | Function | typeof ErrorHandler)} Controller 
-    //  */
-    // use(...Controller) {
-
-    //     for (const controller of Controller ?? []) {
-
-    //         /**
-    //          *  when the passed object is subclass of ErrorController
-    //          */
-    //         if (controller instanceof ErrorHandler) {
-
-    //             this.pipeline.onError(controller);  
-
-    //             continue;
-    //         }
-            
-    //         if (!this.controllers.has(controller)) {
-
-    //             this.controllers.add(controller);
-
-    //             if (isHttpController(controller)) {
-                    
-    //                 this.contorllerIds.add(controller.id);
-    //             }
-    //         }
-    //     }
-    // }
 }

@@ -1,9 +1,12 @@
 const HandlerKind = require('isln/src/dependencies/pipeline/handlerKind.js');
-const isHttpController = require('../../controller/isHttpController');
-const { INIT_PER_SUBCLASS_ID } = require('../../controller/constant');
 const { ErrorHandler } = require('isln/handler');
 const HttpContextConfiguration = require('./httpContextConfiguration');
 const HttpController = require('../../controller/httpController');
+const HttpContextConfigurator = require('./httpContextConfigurator.js');
+
+/**
+ * @typedef {import('./httpContextConfigurator.js')} HttpContextConfigurator
+ */
 
 module.exports = class HttpContextConfigurationBuilder {
 
@@ -23,36 +26,52 @@ module.exports = class HttpContextConfigurationBuilder {
 
     /**
      * 
-     * @param  {...(typeof HttpController | typeof ContextHandler | Function | typeof ErrorHandler)} _Controllers
+     * @param  {...(typeof HttpController | typeof ContextHandler | Function | typeof ErrorHandler)} _Handlers
      */
-    use(..._Controllers) {
+    use(..._Handlers) {
 
-        for (const Controller of _Controllers ?? []) {
+        for (const Handler of _Handlers) {
 
-            if (!Controller) {
+            if (!Handler) {
 
-                throw new TypeError('');
+                throw new TypeError('invalid type passed to for request handling action');
             }
 
             /**
              *  when the passed object is subclass of ErrorController
              */
-            if (Controller.prototype instanceof ErrorHandler) {
+            if (Handler.prototype instanceof ErrorHandler) {
 
-                // this.pipeline.onError(Controller);  
-                this.#errorHandlers.push(Controller);
+                // this.pipeline.onError(Handler);  
+                this.#errorHandlers.push(Handler);
 
                 continue;
             }
             
-            if (!this.#controllers.has(Controller)) {
+            this.useController(Handler);
+        }
 
-                this.#controllers.add(Controller);
+        return this;
+    }
 
-                if (Controller.prototype instanceof HttpController) {
+    /**
+     * 
+     * @param  {...HttpController} _Controllers 
+     */
+    useController(..._Controllers) {
+
+        for (const ControllerClass of _Controllers) {
+
+            if (!(ControllerClass.prototype instanceof HttpController)) {
                     
-                    this.#contorllerIds.add(Controller.id);
-                }
+                throw new TypeError('invalid type of controller, controller must extends [HttpController] class');
+            }
+
+            if (!this.#controllers.has(ControllerClass)) {
+
+                this.#controllers.add(ControllerClass);
+
+                this.#contorllerIds.add(ControllerClass.id);
             }
         }
 
@@ -119,7 +138,6 @@ module.exports = class HttpContextConfigurationBuilder {
 
                    break;
                 }
-
                 throw new TypeError(`cannot register controller class [${_unknown.name}] as error handler`);               
             }
             case HandlerKind.FUNCTION:
@@ -138,6 +156,8 @@ module.exports = class HttpContextConfigurationBuilder {
         const configuration = this.#_build();
 
         HttpContext.setConfiguration(configuration, this);
+
+        return new HttpContextConfigurator(HttpContext);
     }
 
     /**

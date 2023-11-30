@@ -17,15 +17,23 @@ const IGet = require('./interface/iGet');
 const Something = require('./component/something');
 
 const http = require('node:http');
+HttpContext.components.bind(IGet, Something);
+
 
 //HttpContext.pipeline.addPhase().setHandler(Controller).build();
 
-HttpContext.use(Controller, Controller2);
-HttpContext.components.bind(IGet, Something);
+// HttpContext.use(Controller, Controller2);
 
-//app.use(Controller.serve());
+HttpContext.configure()
+            .useController(Controller, Controller2)
+            .build()
+            .serve();
 
-app.use(HttpContext.serve());
+app.use(HttpContext._beginServe());
+// app.use(Controller.serve());
+// app.use(HttpContext.serve());
+
+
 
 http.createServer(app)
     .on('listening', cmd_cls)
