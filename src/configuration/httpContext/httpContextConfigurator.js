@@ -7,6 +7,8 @@ module.exports = class HttpContextConfigurator {
     /**@type {HttpContextConfiguration} */
     #config;
 
+    #httpContext
+
     /**
      * 
      * @param {HttpContextConfiguration} _config 
