@@ -21,10 +21,13 @@ class Controller extends HttpController{
     @paramsType(IGet)
     index(_comp) {
 
+        const httpContext = this.httpContext;
+
         const res = this.httpContext.response;
         const req = this.httpContext.request;
 
         console.log('test controller', _comp.get());
+        console.log('params', httpContext.requestParams);
 
         res.send('done');
     }

@@ -22,15 +22,12 @@ const HttpContextConfiguration = require('./configuration/httpContext/httpContex
 /**
  * @typedef {import('./controller/httpController.js')} HttpController
  * @typedef {import('./configuration/httpContext/httpContextConfiguration.js')} HttpContextConfiguration
+ * @typedef {import('node:http').IncomingMessage} IncomingMessage
+ * @typedef {import('node:http').OutgoingMessage} OutgoingMessage
  */
 
 
 module.exports = class HttpContext extends Context {
-
-    /**@type {Set<typeof HttpController>} */
-    static controllers = new Set();
-
-    static contorllerIds = new Set();
 
     /**@type {HttpContextConfiguration | HttpContextConfigurator} */
     static configuration;
@@ -44,6 +41,8 @@ module.exports = class HttpContext extends Context {
     }
 
     static configure() {
+
+        //this.__init();
 
         this.configurationSesison = new HttpContextConfigurationBuilder(this);
 
@@ -84,174 +83,6 @@ module.exports = class HttpContext extends Context {
         return configuration.servingFactors;
     }
 
-    static lastStepInitialization() {
-
-        this.#registerControllers();
-    }
-
-    static #registerControllers() {
-
-        const controllerPipeline = new Pipeline();
-
-        for (const Controller of this.controllers.values() ?? []) {
-
-            Controller._init();
-            
-            controllerPipeline.addPhase().setHandler(Controller).build();
-        }
-        
-        this.pipeline.addPhase().use(controllerPipeline).build();
-    }
-
-    /**
-     * 
-     * @param  {...(typeof HttpController | typeof ContextHandler | Function | typeof ErrorHandler)} Controller 
-     */
-    static use(...Controller) {
-
-        for (const controller of Controller ?? []) {
-
-            /**
-             *  when the passed object is subclass of ErrorController
-             */
-            if (controller.prototype instanceof ErrorHandler) {
-
-                this.pipeline.onError(controller);  
-
-                continue;
-            }
-            
-            if (!this.controllers.has(controller)) {
-
-                this.controllers.add(controller);
-
-                //if (isHttpController(controller)) {
-                if (controller.prototype instanceof HttpController) {
-                    
-                    this.contorllerIds.add(controller.id);
-                }
-            }
-        }
-    }
-
-    /**
-     * 
-     * @param {typeof HttpController | HttpController} _unknown 
-     */
-    static hasController(_unknown) {
-
-        let controllerId;
-
-        if (typeof _unknown === 'symbol') {
-
-            controllerId = _unknown;
-        }
-        else if (_unknown instanceof HttpController) {
-
-            controllerId = self(_unknown).id;
-        }
-        else if (_unknown.prototype instanceof HttpController) {
-
-            controllerId = _unknown.id;
-        }
-        else {
-
-            throw new TypeError('_unknown has to be a Controller instance or a Controller class');
-        }
-        
-        return this.contorllerIds.has(controllerId);
-    }
-
-    /**
-     * 
-     * @param  {...(ErrorHandler | Function)} errorHandlers 
-     */
-    static onError(...errorHandlers) {
-
-        this.pipeline.onError(...errorHandlers);   
-    }
-
-    static #done() {
-
-        this.__lock();
-    }
-
-    static serve() {
-
-        //this.begin();
-
-        this.#registerTopMiddlewares();
-
-        //this.#registerEndpointFilters();
-
-        this.#registerPreActionFilters();
-
-        this.#registerControllers();
-
-        this.#registerPostActionFilters();
-
-        this.#done();
-
-        const endpointFilter = this.#retrieveEndpointFilters();
-
-        return [endpointFilter, mainContextHandler(this)];
-    }
-
-    static #registerTopMiddlewares() {
-
-
-    }
-
-    static #registerControllerResultFilter() {
-
-
-    }
-
-    static #registerEndpointFilters() {
-
-        const filters = this.#retrieveEndpointFilters();
-
-        this.pipeline.addPhase().setHandler(endpointFilter(filters)).build();
-    }
-
-    static #registerPreActionFilters() {
-
-
-    }
-
-    static #registerPostActionFilters() {
-
-
-    }
-
-    static #retrieveEndpointFilters() {
-
-        const ret = [];
-
-        for (const filterRouter of this.#controlersInternalRouter()) {
-
-            ret.push(filterRouter);
-        }
-
-        return express.Router().use(ret);
-    }
-
-    // static #registerControllerInternalRouter(_handlers = []) {
-
-    //     for (const filterRouter of this.#controlersInternalRouter()) {
-
-    //         _handlers.push(filterRouter);
-    //     }
-    // }
-
-    static* #controlersInternalRouter() {
-
-        for (const ControllerClass of this.controllers.values()) {
-
-            yield ControllerClass.filterRouter;
-        }
-    }
-
 
     /**
      * prototype definition
@@ -266,56 +97,101 @@ module.exports = class HttpContext extends Context {
 
     #route;
 
+    #rawMeta;
+
+    #user;
+
+    #isAuthenticated;
+
+    #userRoll;
+
+    // get rawMeta() {
+
+    //     return this.#rawMeta;
+    // }
+
+    /**@type {boolean} */
+    get isAuthenticated() {
+
+        return this.isAuthenticated;
+    }
+
+    get userRoll() {
+
+        return this.#userRoll;
+    }
+
+    /**@type {IncomingMessage} */
     get request() {
 
         return this.#request;
     }
 
+    /**@type {OutgoingMessage} */
     get response() {
 
         return this.#response;
     }
 
+    /**@type {string} */
     get url() {
 
     }
 
+    /**@type {string} */
     get uri() {
 
     }
 
+    /**@type {string} */
     get domain() {
 
 
     }
 
-    get requestPatams() {
+    /**@type {Object} */
+    get requestParams() {
 
         return this.#requestParams;
     }
 
+    /**@type {string} */
     get group() {
 
         return this.#group
     }
 
+    /**@type {Object} */
     get route() {
 
         return this.#route;   
     }
 
+    /**@type {} */
     get session() {
 
 
     }
 
+    /**@type {} */
+    get user() {
+
+
+    }
+
+    /**@type {} */
     get clientSession() {
 
         return this.#request.session;
     }
 
+    /**
+     * 
+     * @param {IncomingMessage} req 
+     * @param {OutgoingMessage} res 
+     */
     constructor(req, res) {
-
+        
         super();
 
         this.#request = req;
@@ -326,6 +202,8 @@ module.exports = class HttpContext extends Context {
 
     #init() {
 
+        this.#rawMeta = metadata(this.request);
+
         this.#registerRequestAndResponse();
         this.#consumeRequest();
 
@@ -334,7 +212,6 @@ module.exports = class HttpContext extends Context {
 
     #registerRequestAndResponse() {
 
-        //
         const contextSession = super.session;
 
         contextSession.save(RequestCoordinator.key, this.#request);
@@ -350,19 +227,13 @@ module.exports = class HttpContext extends Context {
     }
 
     #initParams() {
-
-        const req = this.#request;
-
-        const requestMeta = metadata(req);
-
-        this.#requestParams = requestMeta?.params;
+        
+        this.#requestParams = this.#rawMeta.params;
     }
 
     #initRouteAndGroup() {
 
         const req = this.#request;
-
-        const requestMeta = metadata(req);
 
         if (typeof requestMeta !== 'object') {
 
@@ -371,7 +242,7 @@ module.exports = class HttpContext extends Context {
 
         const controllerId = getPointControllerId(req);
         
-        const controllerMeta = requestMeta[controllerId];
+        const controllerMeta = this.#rawMeta[controllerId]//requestMeta[controllerId];
 
         this.#group = controllerMeta?.group;
 

@@ -135,12 +135,12 @@ function mainContextHandler(Context) {
         try {
 
             if (!isValidRequest(req, Context)) {
-
+                
                 return next(undefined);
             }
 
             const httpContext = new Context(req, res);
-    
+            
             const pipeline = Context.pipeline;
     
             await pipeline.run(httpContext);
@@ -167,13 +167,13 @@ function mainContextHandler(Context) {
 function isValidRequest(request, _HttpContextCLass) {
 
     const requestControllerId = getPointControllerId(request);
-    console.log(requestControllerId)
+    
     if (typeof requestControllerId !== 'symbol') {
 
         return false;
     }
-
-    return _HttpContextCLass?.hasController(requestControllerId);
+    
+    return _HttpContextCLass?.configuration?.hasController(requestControllerId);
 }
 
 module.exports = {generateExpressHandler, generateInternalHandler, mainContextHandler, generatRouteGroupHandler}

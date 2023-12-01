@@ -75,7 +75,7 @@ module.exports = class HttpContextConfiguration {
             throw new TypeError('_unknown has to be a Controller instance or a Controller class');
         }
         
-        return this.#controllerIds.has(controllerId);
+        return this.#controllerIds.has(id);
     }
 
     /**

@@ -77,7 +77,7 @@ module.exports = class HttpContextConfigurator {
         const endpointFilter = express.Router();
 
         for (const filterRouter of this.#retriveControlersInternalRouter()) {
-
+            
             // ret.push(filterRouter);
             endpointFilter.use(filterRouter);
         }
