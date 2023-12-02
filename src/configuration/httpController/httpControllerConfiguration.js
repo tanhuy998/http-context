@@ -75,9 +75,7 @@ module.exports = class HttpControllerConfiguration extends ContextLockable {
 
         this.#authorizeContext(_context);
 
-        const independentRouter = this.#independentRouter;
-
-        return this.#routeGroup.mountGroup(independentRouter) ?? independentRouter;
+        return this.#independentRouter;
     }
 
     /**
@@ -92,12 +90,29 @@ module.exports = class HttpControllerConfiguration extends ContextLockable {
         return this.#dependentRouter;
     }
     
+    getRouteGroup(_context) {
+
+        this.#authorizeContext(_context);
+
+        return this.#routeGroup;
+    }
+
+    getDependentGroup() {
+
+        return this.#routeGroup.mountGroup(this.#dependentRouter);
+    }
+
+    retrieveIndepentdentGroup() {
+
+        return this.#routeGroup.mountGroup(this.#independentRouter);
+    }
+
     /**
      * 
      * @param {RouteGroup} _group 
      * @param {LockStateObject} _context 
      */
-    setRoutGroup(_group, _context) {
+    setRouteGroup(_group, _context) {
 
         this.#authorizeContext(_context);
 

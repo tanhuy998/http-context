@@ -1,14 +1,22 @@
 'use strict'
 
-/**
- * @typedef {import('../../httpContext.js') HttpContext
- */
-
 const {Pipeline} = require('isln/pipeline');
 const HttpContextConfiguration = require('./httpContextConfiguration.js');
 const express = require('express');
 const {mainContextHandler} = require('../../expressHandler.js');
 
+/**
+ * @typedef {import('../httpController/httpControllerConfiguration.js')} HttpControllerConfiguration
+ * @typedef {import('../../httpContext.js')} HttpContext
+ */
+
+
+/**
+ * @description
+ * HttpContextConfigurator mounts configuration of http context class and return list of express handler
+ * for the express app
+ * 
+ */
 module.exports = class HttpContextConfigurator {
 
     /**@type {typeof HttpContext} */
@@ -70,16 +78,20 @@ module.exports = class HttpContextConfigurator {
         return expressAppHandlers;
     }
 
+    /**
+     * c
+     * 
+     * @returns {express.Router}
+     */
     #retrieveEndpointFilters() {
 
         //const ret = [];
 
         const endpointFilter = express.Router();
 
-        for (const filterRouter of this.#retriveControlersInternalRouter()) {
+        for (const routeGroup of this.#retriveControlersRouteGroup()) {
             
-            // ret.push(filterRouter);
-            endpointFilter.use(filterRouter);
+            endpointFilter.use(routeGroup);
         }
 
         return endpointFilter;
@@ -133,11 +145,11 @@ module.exports = class HttpContextConfigurator {
 
     }
 
-    *#retriveControlersInternalRouter() {
-
+    *#retriveControlersRouteGroup() {
+        
         for (const ControllerClass of this.#configuration.controllers.values()) {
 
-            yield ControllerClass.configuration.getIndependentRouter(ControllerClass);
+            yield ControllerClass.configuration.retrieveIndepentdentGroup(ControllerClass);
         }
     }
 

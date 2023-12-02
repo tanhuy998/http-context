@@ -58,7 +58,7 @@ function generateInternalHandler(_controllerClass, _controllerPath, _filters = [
     return function controllerFilter(req, res, next) {
 
         const currentRoute = req.route;
-
+        console.log(['independent router'], req.path)
         /**
          *  routes could have the same name when they are in different group,
          */

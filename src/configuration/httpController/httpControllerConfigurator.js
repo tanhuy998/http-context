@@ -6,6 +6,7 @@ const { getRegisteredMethods, getRoute, getControllerRouteGroup } = require('../
 const {generateExpressHandler, generateInternalHandler} = require('../../expressHandler.js');
 const HttpControllerRouterStrategy = require('./httpControllerRouterStrategy');
 const {convertToVerbList} = require('../../utils/httpMethodEncoding.js');
+const RouteGroup = require('../../utils/route/routeGroup.js');
 
 module.exports = class HttpControllerConfigurator {
 
@@ -43,8 +44,6 @@ module.exports = class HttpControllerConfigurator {
         }
 
         this.#configuration = configuration;
-
-        //this.#httpContextClass = configuration.context;
     }
 
     mount() {
@@ -65,16 +64,10 @@ module.exports = class HttpControllerConfigurator {
 
     #resolveRouteGroup() {
 
-        const routeGroup = getControllerRouteGroup(this.#controllerClass);
+        const routeGroup = getControllerRouteGroup(this.#controllerClass) || new RouteGroup();
 
-        this.#configuration.setRoutGroup(routeGroup, this.#controllerClass);
+        this.#configuration.setRouteGroup(routeGroup, this.#controllerClass);
     }
-
-
-    // serve() {
-
-    //     return this.router;
-    // }
 
     #retrieveControllerRouteHandlingMethods() {
 
