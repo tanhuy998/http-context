@@ -23,7 +23,7 @@ HttpContext.components.bind(IGet, Something);
 //HttpContext.pipeline.addPhase().setHandler(Controller).build();
 
 // HttpContext.use(Controller, Controller2);
-
+//cmd_cls();
 HttpContext.configure()
             .useController(Controller, Controller2)
             .build()

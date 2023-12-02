@@ -137,7 +137,7 @@ module.exports = class HttpContextConfigurator {
 
         for (const ControllerClass of this.#configuration.controllers.values()) {
 
-            yield ControllerClass.filterRouter;
+            yield ControllerClass.configuration.getIndependentRouter(ControllerClass);
         }
     }
 

@@ -2,10 +2,17 @@
  * @typedef {import('./routeMetadata.js')} RouteMetadata
  */
 
+const ContextLockable = require('isln/src/dependencies/lockable/contextLockable.js');
+
 /**
  * RouteMap is the mapping table of a controller class
  */
-module.exports = class RouteMap {
+module.exports = class RouteMap extends ContextLockable {
+
+    /**
+     * @override
+     */
+    lockActions = ['map'];
 
     /**
      * @type {Map<string, Set<RouteMetadata>>}
@@ -14,9 +21,15 @@ module.exports = class RouteMap {
 
     #regex = new Set();
 
-    constructor() {
+    /**
+     * @typedef {Object} LockStateObject
+     * @property {boolean} isLocked
+     * 
+     * @param {LockStateObject} _HttpControllerCLass
+     */
+    constructor(_HttpControllerCLass) {
 
-
+        super(_HttpControllerCLass);
     }
 
     /**

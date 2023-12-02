@@ -1,5 +1,12 @@
+const ContextLockable = require('isln/src/dependencies/lockable/contextLockable.js');
 const {addVerb, hasVerb} = require('../httpMethodEncoding.js');
-module.exports = class RouteMetadata {
+
+module.exports = class RouteMetadata extends ContextLockable {
+
+    /**
+     * @override
+     */
+    lockActions = ['set']
 
     /**@type {Map<string, number>} */
     #map = new Map();
@@ -24,7 +31,18 @@ module.exports = class RouteMetadata {
         return this.#methodName;
     }
 
-    constructor(_func, _name) {
+    /**
+     * @typedef {Object} LockStateObject
+     * @property {boolean} isLocked
+     * 
+     * 
+     * @param {Function} _func 
+     * @param {string} _name 
+     * @param {LockStateObject} _HttpContext 
+     */
+    constructor(_func, _name, _HttpContext) {
+
+        super(_HttpContext);
 
         if (typeof _func !== 'function') {
 

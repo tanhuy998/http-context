@@ -9,36 +9,16 @@ const RouteMap = require("../utils/route/routeMap.js");
 const {generateExpressHandler, generateInternalHandler} = require('../expressHandler.js');
 const { hasControllerMetadata } = require("../utils/requestMetadata.js");
 const { getControllerRouteGroup } = require("../utils/route/route.utils.js");
-const { BASE_HTTP_CONTROLLER } = require("./constant.js");
+const { BASE_HTTP_CONTROLLER, CONFIGURATION } = require("./constant.js");
+const HttpControllerConfiguration = require("../configuration/httpController/httpControllerConfiguration.js");
+const HttpControllerRouterStrategy = require("../configuration/httpController/httpControllerRouterStrategy.js");
+const HttpControllerConfigurator = require("../configuration/httpController/httpControllerConfigurator.js");
 
 /**
  * @typedef {import('../httpContext.js')} HttpContext
  */
 
 const proto = module.exports = class HttpController extends BaseController {
-    
-    /**
-     * For static call handling without pipeline
-     * 
-     * @type {express.Router}
-     */
-    static expressRouter = undefined;
-
-    static featureRouter;
-
-    /**
-     * For handling inside a pipeline
-     */
-    /**@type {express.Router} */
-    static internalRouter = undefined;
-
-    /**@type {RouteMap} */
-    static routeMap;
-
-    /**@type {Symbol} */
-    static perSubClassId;
-
-    static routeRegex;
 
     static get id() {
 
@@ -46,70 +26,6 @@ const proto = module.exports = class HttpController extends BaseController {
 
         return this.perSubClassId;
     }
-
-    static get filterRouter() {
-
-        if (!this.internalRouter) {
-
-            this._init();
-        }
-        
-        const routeGroup = getControllerRouteGroup(this);
-
-        return routeGroup?.mountGroup(this.internalRouter) ?? this.internalRouter;
-    }
-
-    static get router() {
-
-        if (!this.expressRouter) {
-
-            this._init();
-        }
-
-        const routeGroup = getControllerRouteGroup(this);
-
-        return routeGroup?.mountGroup(this.expressRouter) ?? this.expressRouter;
-    }
-
-    static get feature() {
-
-        if (!this.featureRouter) {
-
-            this._init();
-        }
-
-        return this.featureRouter;
-    }
-
-    static serve() {
-
-       return this.router;
-    }
-
-    static _init() {
-        
-        if (this.expressRouter !== undefined || this.internalRouter !== undefined) {
-
-            return;
-        }
-
-        this.expressRouter = express.Router();
-
-        this.internalRouter = express.Router();
-
-        this.featureRouter = {
-            before: express.Router(),
-            after: express.Router()
-        };
-
-        //this.id = typeof this.id === 'symbol' ? this.id : Symbol(this.name);
-
-        this._initPerSubClassId();
-
-        this.initRouteMap();
-
-        this.registerRoutes();
-    } 
 
     static _initPerSubClassId() {
 
@@ -132,54 +48,178 @@ const proto = module.exports = class HttpController extends BaseController {
         });
     }
 
-    static initRouteMap() {
+    /**@type {HttpControllerConfiguration} */
+    static get configuration() {
 
-        this.routeMap = new RouteMap();
+        const configuration = this[CONFIGURATION];
+        
+        if (configuration instanceof HttpControllerConfiguration) {
+
+            return configuration;
+        }
+
+        return this[CONFIGURATION] = new HttpControllerConfiguration(this);
     }
 
-    /**
-     * setups route that declared on each method except route group
-     * 
-     * @returns 
-     */
-    static registerRoutes() {
+    static _init() {
 
-        const exprRouter = this.expressRouter;
-        const internalRouter = this.internalRouter;
-        const routeMap = this.routeMap;
+        new HttpControllerConfigurator(this).mount();
 
-        if (!exprRouter) {
+        if (this.isLock === true) {
 
             return;
         }
 
-        const methods = getRegisteredMethods(this);
-        
-        for (const fn of methods || []) {
-            
-            const route = getRoute(fn);
-
-            for (const entry of route.all.entries()) {
-                
-                const [pattern, verbChain] = entry;
-                
-                if (typeof pattern !== 'string' || typeof verbChain !== 'number') {
-
-                    continue;
-                }
-
-                routeMap.map(pattern, route);                
-
-                const verbList = convertToVerbList(verbChain);
-                
-                for (const verb of verbList || []) {
-                    
-                    exprRouter[verb](pattern, generateExpressHandler(this, pattern));
-                    internalRouter[verb](pattern, generateInternalHandler(this, pattern));
-                }               
-            }
-        }
+        Object.defineProperty(this, 'isLocked', {
+            configurable: false,
+            enumerable: true,
+            writable: false,
+            value: false
+        })
     }
+
+    static serve() {
+
+        this._init();
+
+        return this.configuration.getIndependentRouter(this);
+    }
+
+    // /**
+    //  * For static call handling without pipeline
+    //  * 
+    //  * @type {express.Router}
+    //  */
+    // static expressRouter = undefined;
+
+    // static featureRouter;
+
+    // /**
+    //  * For handling inside a pipeline
+    //  */
+    // /**@type {express.Router} */
+    // static internalRouter = undefined;
+
+    // /**@type {RouteMap} */
+    // static routeMap;
+
+    // /**@type {Symbol} */
+    // static perSubClassId;
+
+    // static routeRegex;
+
+    // static get filterRouter() {
+
+    //     if (!this.internalRouter) {
+
+    //         this._init();
+    //     }
+        
+    //     const routeGroup = getControllerRouteGroup(this);
+
+    //     return routeGroup?.mountGroup(this.internalRouter) ?? this.internalRouter;
+    // }
+
+    // static get router() {
+
+    //     if (!this.expressRouter) {
+
+    //         this._init();
+    //     }
+
+    //     const routeGroup = getControllerRouteGroup(this);
+
+    //     return routeGroup?.mountGroup(this.expressRouter) ?? this.expressRouter;
+    // }
+
+    // static get feature() {
+
+    //     if (!this.featureRouter) {
+
+    //         this._init();
+    //     }
+
+    //     return this.featureRouter;
+    // }
+
+    // static serve() {
+
+    //    return this.router;
+    // }
+
+    // static _init() {
+        
+    //     if (this.expressRouter !== undefined || this.internalRouter !== undefined) {
+
+    //         return;
+    //     }
+
+    //     this.expressRouter = express.Router();
+
+    //     this.internalRouter = express.Router();
+
+    //     this.featureRouter = {
+    //         before: express.Router(),
+    //         after: express.Router()
+    //     };
+
+    //     //this.id = typeof this.id === 'symbol' ? this.id : Symbol(this.name);
+
+    //     this._initPerSubClassId();
+
+    //     this.initRouteMap();
+
+    //     this.registerRoutes();
+    // }
+
+    // static initRouteMap() {
+
+    //     this.routeMap = new RouteMap();
+    // }
+
+    // /**
+    //  * setups route that declared on each method except route group
+    //  * 
+    //  * @returns 
+    //  */
+    // static registerRoutes() {
+
+    //     const exprRouter = this.expressRouter;
+    //     const internalRouter = this.internalRouter;
+    //     const routeMap = this.routeMap;
+
+    //     if (!exprRouter) {
+
+    //         return;
+    //     }
+
+    //     const methods = getRegisteredMethods(this);
+        
+    //     for (const fn of methods || []) {
+            
+    //         const route = getRoute(fn);
+
+    //         for (const entry of route.all.entries()) {
+                
+    //             const [pattern, verbChain] = entry;
+                
+    //             if (typeof pattern !== 'string' || typeof verbChain !== 'number') {
+
+    //                 continue;
+    //             }
+
+    //             routeMap.map(pattern, route);                
+
+    //             const verbList = convertToVerbList(verbChain);
+                
+    //             for (const verb of verbList || []) {
+                    
+    //                 exprRouter[verb](pattern, generateExpressHandler(this, pattern));
+    //                 internalRouter[verb](pattern, generateInternalHandler(this, pattern));
+    //             }               
+    //         }
+    //     }
+    // }
 
     /**
      * PROTOTYPE AREA
