@@ -82,6 +82,8 @@ function generateInternalHandler(_controllerClass, _controllerPath, _filters = [
             const wrapperMeta = metadata(req);
             
             wrapperMeta.params = merge(wrapperMeta?.params ?? {}, req.params ?? {});
+            // the route manager manages routes not to be duplicate, so this statement is safe
+            wrapperMeta.route = currentRoute
 
             controllerMeta.route = currentRoute;
             controllerMeta.group = wrapperMeta.group;

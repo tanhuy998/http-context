@@ -110,6 +110,11 @@ module.exports = class HttpContext extends Context {
     //     return this.#rawMeta;
     // }
 
+    get rawMeta() {
+
+        return this.#rawMeta;
+    }
+
     /**@type {boolean} */
     get isAuthenticated() {
 
@@ -165,6 +170,11 @@ module.exports = class HttpContext extends Context {
     get route() {
 
         return this.#route;   
+    }
+
+    get method() {
+
+        return this.#request.method;
     }
 
     /**@type {} */
@@ -233,20 +243,15 @@ module.exports = class HttpContext extends Context {
 
     #initRouteAndGroup() {
 
-        const req = this.#request;
+        const rawMeta = this.#rawMeta;
 
-        if (typeof requestMeta !== 'object') {
+        if (typeof rawMeta !== 'object') {
 
             return;
         }
 
-        const controllerId = getPointControllerId(req);
-        
-        const controllerMeta = this.#rawMeta[controllerId]//requestMeta[controllerId];
-
-        this.#group = controllerMeta?.group;
-
-        this.#route = controllerMeta?.route;
+        this.#group = rawMeta.group;
+        this.#route = rawMeta.route;
     }
 
     #_cleanup() {

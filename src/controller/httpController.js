@@ -1,4 +1,3 @@
-const BaseController = require("./baseController");
 const RouteMetadata = require("../utils/route/routeMetadata.js");
 const self = require('reflectype/src/utils/self.js');
 const RouteMap = require("../utils/route/routeMap.js");
@@ -6,12 +5,15 @@ const { hasControllerMetadata } = require("../utils/requestMetadata.js");
 const { BASE_HTTP_CONTROLLER, CONFIGURATION, SUB_CLASS_ID } = require("./constant.js");
 const HttpControllerConfiguration = require("../configuration/httpController/httpControllerConfiguration.js");
 const HttpControllerConfigurator = require("../configuration/httpController/httpControllerConfigurator.js");
+const SignalIssuer = require("../signal/pipeline/signalIssuer.js");
+const IActionResult = require("../actionResult/iActionResult.js");
+const {Any} = require('reflectype/src/type');
 
 /**
  * @typedef {import('../httpContext.js')} HttpContext
  */
 
-const proto = module.exports = class HttpController extends BaseController {
+const proto = module.exports = class HttpController extends SignalIssuer {
 
     static get id() {
         
@@ -99,6 +101,16 @@ const proto = module.exports = class HttpController extends BaseController {
         return self(this).configuration;
     }
 
+    get classId() {
+
+        return self(this).id;
+    }
+
+    constructor(_context) {
+
+        super(_context, [IActionResult, Any])
+    }
+
     handle() {
         
         try {
@@ -113,8 +125,10 @@ const proto = module.exports = class HttpController extends BaseController {
              */
     
             this.#resolve();
-            
-            return this.#handlingProgress;
+
+            const handlingResult = this.#handlingProgress;
+
+            return this._emit(handlingResult);
         }
         catch(e) {
 
@@ -126,7 +140,20 @@ const proto = module.exports = class HttpController extends BaseController {
 
         const req = this.httpContext.request;
         
-        return hasControllerMetadata(req, this);
+        //return hasControllerMetadata(req, this);
+        return this.#validateHttpContext();
+    }
+
+    #validateHttpContext() {
+
+        const rawMeta = this.httpContext.rawMeta;
+
+        if (typeof rawMeta !== 'object') {
+
+            return false;
+        }
+
+        return typeof rawMeta[this.classId] === 'object';
     }
 
     #resolve() {
@@ -141,13 +168,11 @@ const proto = module.exports = class HttpController extends BaseController {
     */
     #resolveRoutesMetadata() {
 
-        const req = this.httpContext.request;
-
         /**@type {RouteMap} */
         const routeMap = this.configuration.routeMap;
 
         /**@type {string} */
-        const currentRoutePattern = req.route.path;
+        const currentRoutePattern = this.httpContext.route.path;
 
         const metadatas = routeMap.get(currentRoutePattern);
 
@@ -199,13 +224,14 @@ const proto = module.exports = class HttpController extends BaseController {
         /**@type {Array<Function>} */
         const ret = [];
 
-        const httpRequest = this.httpContext.request;
+        //const httpRequest = this.httpContext.request;
+        const httpContext = this.httpContext;
         
         /**@type {string} */
-        const httpMethod = httpRequest.method;
+        const httpMethod = httpContext.method;//httpRequest.method;
 
         /**@type {string} */
-        const reqPattern = httpRequest.route.path;
+        const reqPattern = httpContext.route.path;//httpRequest.route.path;
 
         
         
