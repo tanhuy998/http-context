@@ -81,6 +81,7 @@ module.exports = class HttpControllerConfigurator {
      */
     #registerRoutes() {
 
+        const controllerClass = this.#controllerClass;
         const configuration = this.#configuration;
 
         const independentRouter = configuration.getRouter(HttpControllerRouterStrategy.INDEPENDENT);
@@ -109,8 +110,8 @@ module.exports = class HttpControllerConfigurator {
 
                 for (const verb of verbList || []) {
 
-                    dependentRouter[verb](pattern, generateExpressHandler(this, pattern));
-                    independentRouter[verb](pattern, generateInternalHandler(this, pattern));
+                    dependentRouter[verb](pattern, generateExpressHandler(controllerClass, pattern));
+                    independentRouter[verb](pattern, generateInternalHandler(controllerClass, pattern));
                 }
             }
         }

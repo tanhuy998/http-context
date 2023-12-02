@@ -9,7 +9,7 @@ const RouteMap = require("../utils/route/routeMap.js");
 const {generateExpressHandler, generateInternalHandler} = require('../expressHandler.js');
 const { hasControllerMetadata } = require("../utils/requestMetadata.js");
 const { getControllerRouteGroup } = require("../utils/route/route.utils.js");
-const { BASE_HTTP_CONTROLLER, CONFIGURATION } = require("./constant.js");
+const { BASE_HTTP_CONTROLLER, CONFIGURATION, SUB_CLASS_ID } = require("./constant.js");
 const HttpControllerConfiguration = require("../configuration/httpController/httpControllerConfiguration.js");
 const HttpControllerRouterStrategy = require("../configuration/httpController/httpControllerRouterStrategy.js");
 const HttpControllerConfigurator = require("../configuration/httpController/httpControllerConfigurator.js");
@@ -21,32 +21,12 @@ const HttpControllerConfigurator = require("../configuration/httpController/http
 const proto = module.exports = class HttpController extends BaseController {
 
     static get id() {
-
+        
         this._initPerSubClassId();
-
-        return this.perSubClassId;
+        
+        return this[SUB_CLASS_ID];
     }
 
-    static _initPerSubClassId() {
-
-        const fieldName = 'perSubClassId';
-
-        const descriptor = Object.getOwnPropertyDescriptor(this, fieldName);
-
-        if (!descriptor?.configurable && 
-            !descriptor?.writable && 
-            typeof descriptor?.value === 'symbol') {
-
-                return;
-        }
-
-        Object.defineProperty(this, fieldName, {
-            configurable: false,
-            writable: false,
-            enumerable: true,
-            value: Symbol(this.name)
-        });
-    }
 
     /**@type {HttpControllerConfiguration} */
     static get configuration() {
@@ -61,8 +41,31 @@ const proto = module.exports = class HttpController extends BaseController {
         return this[CONFIGURATION] = new HttpControllerConfiguration(this);
     }
 
-    static _init() {
+    static _initPerSubClassId() {
 
+        const fieldName = SUB_CLASS_ID;
+
+        const descriptor = Object.getOwnPropertyDescriptor(this, fieldName);
+        
+        if (!descriptor?.configurable && 
+            !descriptor?.writable && 
+            typeof descriptor?.value === 'symbol') {
+
+                return;
+        }
+        
+        Object.defineProperty(this, fieldName, {
+            configurable: false,
+            writable: false,
+            enumerable: true,
+            value: Symbol(this.name)
+        });
+    }
+
+    static _init() {
+        
+        this._initPerSubClassId();
+        
         new HttpControllerConfigurator(this).mount();
 
         if (this.isLock === true) {
@@ -233,6 +236,12 @@ const proto = module.exports = class HttpController extends BaseController {
         return super.context;
     }
 
+    /**@type {HttpControllerConfiguration} */
+    get configuration() {
+
+        return self(this).configuration;
+    }
+
     handle() {
         
         try {
@@ -252,7 +261,7 @@ const proto = module.exports = class HttpController extends BaseController {
         }
         catch(e) {
 
-            console.log(e)
+            
         }
     }
 
@@ -278,7 +287,7 @@ const proto = module.exports = class HttpController extends BaseController {
         const req = this.httpContext.request;
 
         /**@type {RouteMap} */
-        const routeMap = self(this).routeMap;
+        const routeMap = this.configuration.routeMap;
 
         /**@type {string} */
         const currentRoutePattern = req.route.path;

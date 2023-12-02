@@ -58,7 +58,8 @@ function generateInternalHandler(_controllerClass, _controllerPath, _filters = [
     return function controllerFilter(req, res, next) {
 
         const currentRoute = req.route;
-        console.log(['independent router'], req.path)
+        
+        
         /**
          *  routes could have the same name when they are in different group,
          */
@@ -97,7 +98,7 @@ function generateInternalHandler(_controllerClass, _controllerPath, _filters = [
 function generatRouteGroupHandler(_ControllerClass, _groupPath, _filters = []) {
 
     return function groupHandler(req, res, next) {
-
+        
         try {
             
             applyFilter({ request: req, response: res }, _filters);
@@ -131,9 +132,9 @@ function merge(target, ...sources) {
 function mainContextHandler(Context) {
 
     return async function (req, res, next) {
-        console.log(['incoming request'])
+        
         try {
-
+            
             if (!isValidRequest(req, Context)) {
                 
                 return next(undefined);
