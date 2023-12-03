@@ -16,23 +16,23 @@ module.exports = class ResponseResultComponent {
         this.#value = _value;
     }
 
-    merge() {
+    merge(_value) {
 
-
+        this.#value = Object.assign(this.#value, _value);
     }
 
     append() {
 
-
+        this.merge(_value);
     }
 
-    prepend() {
+    prepend(_value) {
 
-
+        this.merge(_value);
     }
 
-    overWrite() {
+    overWrite(_value) {
 
-        
+        this.#value = _value;
     }
 }

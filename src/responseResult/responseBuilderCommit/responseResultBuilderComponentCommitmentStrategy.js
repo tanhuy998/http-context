@@ -12,8 +12,18 @@ module.exports = class ResponseResultBuilderComponentCommitmentStrategy {
         
     }
 
-    static commit() {
+    commit() {
 
-        
+        const action = this.#action;
+        const value = this.#value;
+
+        try {
+
+            this.#component[action](value); 
+        }
+        catch (e) {
+
+            return;
+        }
     }
 }

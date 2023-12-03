@@ -1,24 +1,79 @@
+const { OutgoingMessage } = require("node:http");
+const ResponseBodyComponent = require("./component/responseBodyComponent");
+const ResponseHeaderComponent = require("./component/responseHeaderConponent");
+const { Duplex } = require("node:stream");
+
+/**
+ * @typedef {import('express')} express
+ */
+
 module.exports = class Responseresult {
 
-    #res;
+    /**@type {express.OutgoingMessage} */
+    #responseObj;
+    
+    /**@type {ResponseHeaderComponent} */
+    #header;
 
-    constructor() {
+    /**@type {ResponseBodyComponent} */
+    #body; 
+    /**@type {} */
+    #cookie;
 
+    #status;
 
+    get hasSocket() {
+
+        return this.#responseObj?.socket instanceof Duplex;
+    }
+
+    constructor(status, headers, body, cookie) {
+
+        this.#header = headers;
+        this.#cookie = cookie;
+        this.#body = body;
+        this.#status = status;
     }
 
     /**
      * 
-     * @param {Object} _headers 
+     * @param {OutgoingMessage} _response 
      */
-    header(_headers) {
+    setSocket(_response) {
 
-        
-        return this;
+        this.#responseObj = _response;
     }
 
-    body() {
+    send() {
 
-        return this;
+        if (!this.hasSocket) {
+
+            throw new Error('no socket connection to send response');
+        }
+
+        this.#sendStatus();
+        this.#sendHeaders();
+        this.#sendCookie();
+        this.#sendBody();
+    }
+
+    #sendStatus() {
+
+        this.#responseObj.statusCode(this.#status);
+    }
+
+    #sendHeaders() {
+
+        this.#responseObj.header(this.#header.value);
+    }
+
+    #sendCookie() {
+
+        //this.#responseObj.
+    }
+
+    #sendBody() {
+
+        this.#responseObj.send(this.#body.value);
     }
 }
