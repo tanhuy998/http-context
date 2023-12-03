@@ -4,6 +4,7 @@ const {Pipeline} = require('isln/pipeline');
 const HttpContextConfiguration = require('./httpContextConfiguration.js');
 const express = require('express');
 const {mainContextHandler} = require('../../expressHandler.js');
+const ActionResultFilter = require('../../actionResult/filter/actionResultFilter.js');
 
 /**
  * @typedef {import('../httpController/httpControllerConfiguration.js')} HttpControllerConfiguration
@@ -109,7 +110,7 @@ module.exports = class HttpContextConfigurator {
          * the interupt mechanism, when a controller handles a request, it throws an ActionResult 
          * signal for httpcontext pipeline to catch and handle it.
          */
-        httpContextPipeline.onError();
+        //httpContextPipeline.onError();
     }
 
     #registerErrorHandlers() {
@@ -159,6 +160,8 @@ module.exports = class HttpContextConfigurator {
         
         const controllerPipeline = new Pipeline();
 
+        this.#registerControllerPipelineActionResultFilter(controllerPipeline);
+
         for (const Controller of configuration.controllers.values() ?? []) {
 
             Controller._init();
@@ -169,5 +172,14 @@ module.exports = class HttpContextConfigurator {
         const httpContextPipeline = this.#httpContextClass.pipeline;
 
         httpContextPipeline.addPhase().use(controllerPipeline).build();
+    }
+
+    /**
+     * 
+     * @param {Pipeline} _pipeline 
+     */
+    #registerControllerPipelineActionResultFilter(_pipeline) {
+        
+        _pipeline.onError(ActionResultFilter);
     }
 }
