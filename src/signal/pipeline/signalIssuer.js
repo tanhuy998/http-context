@@ -20,6 +20,11 @@ module.exports = class SignalIssuer extends ContextHandler {
 
     _emit(_signal) {
 
+        return this.#_emit(_signal);
+    }
 
+    #_emit(_signal) {
+
+        
     }
 }
