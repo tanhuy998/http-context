@@ -1,7 +1,7 @@
 const {implement} = require('reflectype/src/decorators');
 const IActionResult = require('./iActionResult');
 const HttpContext = require('../httpContext.js');
-const Responseresult = require('../responseResult/responseResult.js');
+const ResponseResultBuilder = require('../responseResult/responseResultBuilder.js');
 
 const proto = module.exports = class ActionResult {
 

@@ -6,8 +6,10 @@ const CookieCommitment = require("./responseBuilderCommit/cookieCommitment");
 const HeaderCommitment = require("./responseBuilderCommit/headerCommitment");
 const Responseresult = require("./responseResult");
 const self = require('reflectype/src/utils/self');
+const {implement} = require('reflectype/src/decorators');
+const IActionResult = require("../actionResult/iActionResult");
 
-module.exports = class ResponseResultBuilder {
+const proto = module.exports = class ResponseResultBuilder {
 
     /**@type {ResponseHeaderComponent} */
     #header;
@@ -29,6 +31,11 @@ module.exports = class ResponseResultBuilder {
     build() {
 
         return new Responseresult(this.#status, this.#header, this.#body, this.#cookie);
+    }
+
+    resoleResult() {
+
+        return this.build();
     }
 
     status(_value) {
@@ -92,3 +99,5 @@ module.exports = class ResponseResultBuilder {
         strategy.commit();
     }
 }
+
+implement(IActionResult)(proto, {kind: 'class'});

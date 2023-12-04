@@ -8,6 +8,7 @@ const HttpControllerConfigurator = require("../configuration/httpController/http
 const SignalIssuer = require("../signal/pipeline/signalIssuer.js");
 const IActionResult = require("../actionResult/iActionResult.js");
 const {Any} = require('reflectype/src/type');
+const ResponseResultBuilder = require("../responseResult/responseResultBuilder.js");
 
 /**
  * @typedef {import('../httpContext.js')} HttpContext
@@ -119,21 +120,30 @@ const proto = module.exports = class HttpController extends SignalIssuer {
 
                 return;
             }
-            
-            /**
-             * using RouteMap to get the exact method for handling the current route;
-             */
     
             this.#resolve();
-
-            const handlingResult = this.#handlingProgress;
-
-            return this._emit(handlingResult);
         }
         catch(e) {
 
-            
+            if (e instanceof Error) {
+
+                throw e;
+            }
         }
+
+        const handlingResult = this.#handlingProgress;
+
+        return this._emit(handlingResult);
+    }
+
+    /**
+     * @override
+     */
+    _emit(_data) {
+
+        _data = _data instanceof Action
+
+        super()
     }
 
     #requestMatch() {
@@ -263,6 +273,7 @@ const proto = module.exports = class HttpController extends SignalIssuer {
      */
     render(_view, _variables) {
 
+
     }
 
     /**
@@ -284,6 +295,11 @@ const proto = module.exports = class HttpController extends SignalIssuer {
     file() {
 
 
+    }
+
+    status(_code) {
+
+        return new ResponseResultBuilder().status(_code);
     }
 }
 
