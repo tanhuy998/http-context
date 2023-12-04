@@ -1,10 +1,15 @@
 const {implement} = require('reflectype/src/decorators');
 const IActionResult = require('./iActionResult');
-const HttpContext = require('../httpContext.js');
 const ResponseResultBuilder = require('../responseResult/responseResultBuilder.js');
 
 /**
- * ActionResult parses a controller returned value that did not implement IActionResult iterface
+ * @typedef {import('../responseResult/responseResult.js')} Responseresult
+ */
+
+const DEFAULT_STATUS_CODE = 200;
+
+/**
+ * ActionResult tranform a controller returned value that did not implement IActionResult iterface
  * into a implementation of IActionResult. It's treat the returned value as the body of response, 
  * headers is set by default.
  * 
@@ -30,9 +35,6 @@ const ResponseResultBuilder = require('../responseResult/responseResultBuilder.j
  */
 const proto = module.exports = class ActionResult {
 
-    /**@type {HttpContext} */
-    #httpContext;
-
     #value;
 
     get value() {
@@ -43,28 +45,35 @@ const proto = module.exports = class ActionResult {
     /**
      * 
      * @param {any} value 
-     * @param {HttpContext} httpContext 
      */
     constructor(actionValue) {
 
         this.#value = actionValue;
-        //this.#httpContext = httpContext
 
         this.#init();
     }
 
     #init() {
 
-        
+        this.#transformValue();
     }
 
+    #transformValue() {
+
+
+    }
+
+    /**
+     * 
+     * @returns {Responseresult}
+     */
     resolveResult() {
 
         const resBody = this.#value;
 
-        return new ResponseResultBuilder(this.#httpContext.response)
+        return new ResponseResultBuilder(DEFAULT_STATUS_CODE)
                     .body(resBody)
-                    .resoleResult();
+                    .resolveResult();
     }
 }
 
