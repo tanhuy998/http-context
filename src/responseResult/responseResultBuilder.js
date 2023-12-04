@@ -33,7 +33,7 @@ const proto = module.exports = class ResponseResultBuilder {
         return new Responseresult(this.#status, this.#header, this.#body, this.#cookie);
     }
 
-    resoleResult() {
+    resolveResult() {
 
         return this.build();
     }
@@ -49,7 +49,7 @@ const proto = module.exports = class ResponseResultBuilder {
     */
     header(_headers) {
 
-        //this.#header = this.#header?.merge(_headers) ?? new ResponseHeaderComponent(_headers);
+        this.#header ??= new ResponseHeaderComponent();
 
         this.#commitComponents(this.#header, _headers);
 
@@ -58,7 +58,8 @@ const proto = module.exports = class ResponseResultBuilder {
 
     body(_content) {
 
-        //this.#header = this.#header?.append(_content) ?? new ResponseHeaderComponent(_content);
+        this.#body ??= new ResponseBodyComponent();
+
         this.#commitComponents(this.#body, _content);
 
         return this;
@@ -66,14 +67,16 @@ const proto = module.exports = class ResponseResultBuilder {
 
     cookie(_content) {
 
+        this.#cookie ??= new ResponseCookieComponent();
+
         this.#commitComponents(this.#cookie, _content);
 
         return this;
     }
 
-    contentType(_type) {
+    contentType(_type, ...params) {
 
-        this.#header.overWrite(_type);
+        this.#header.overWrite(_type, params);
     }
 
     #commitComponents(_component, _content) {

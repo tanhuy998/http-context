@@ -1,7 +1,4 @@
-const RouteMetadata = require("../utils/route/routeMetadata.js");
 const self = require('reflectype/src/utils/self.js');
-const RouteMap = require("../utils/route/routeMap.js");
-const { hasControllerMetadata } = require("../utils/requestMetadata.js");
 const { BASE_HTTP_CONTROLLER, CONFIGURATION, SUB_CLASS_ID } = require("./constant.js");
 const HttpControllerConfiguration = require("../configuration/httpController/httpControllerConfiguration.js");
 const HttpControllerConfigurator = require("../configuration/httpController/httpControllerConfigurator.js");
@@ -9,12 +6,15 @@ const SignalIssuer = require("../signal/pipeline/signalIssuer.js");
 const IActionResult = require("../actionResult/iActionResult.js");
 const {Any} = require('reflectype/src/type');
 const ResponseResultBuilder = require("../responseResult/responseResultBuilder.js");
+const matchType = require('reflectype/src/libs/matchType.js');
+const ActionResult = require("../actionResult/actionResult.js");
+const ControllerRouteLocator = require("./routeLocator/controllerRouteLocator.js");
 
 /**
  * @typedef {import('../httpContext.js')} HttpContext
  */
 
-const proto = module.exports = class HttpController extends SignalIssuer {
+module.exports = class HttpController extends SignalIssuer {
 
     static get id() {
         
@@ -116,23 +116,29 @@ const proto = module.exports = class HttpController extends SignalIssuer {
         
         try {
             
-            if (!this.#requestMatch()) {
+            const routeLocator = new ControllerRouteLocator(this);
+
+            if (!routeLocator.requestMatch()) {
 
                 return;
             }
-    
-            this.#resolve();
+            
+            // locates the method that handle for a route
+            const methods = routeLocator.locate();
+            // invoke and trace it's result
+            this.#treat(methods.values());
         }
         catch(e) {
-
+            
             if (e instanceof Error) {
 
                 throw e;
             }
         }
 
+        /**@type {any | Promise} */
         const handlingResult = this.#handlingProgress;
-
+        // just emit the result to signal consumer
         return this._emit(handlingResult);
     }
 
@@ -141,52 +147,9 @@ const proto = module.exports = class HttpController extends SignalIssuer {
      */
     _emit(_data) {
 
-        _data = _data instanceof Action
+        _data = matchType(IActionResult, _data) ? _data : new ActionResult(_data);
 
-        super()
-    }
-
-    #requestMatch() {
-
-        const req = this.httpContext.request;
-        
-        //return hasControllerMetadata(req, this);
-        return this.#validateHttpContext();
-    }
-
-    #validateHttpContext() {
-
-        const rawMeta = this.httpContext.rawMeta;
-
-        if (typeof rawMeta !== 'object') {
-
-            return false;
-        }
-
-        return typeof rawMeta[this.classId] === 'object';
-    }
-
-    #resolve() {
-
-        const methods = this.#resolveRoutesMetadata();
-        
-        return this.#treat(methods.values());
-    }
-
-    /**
-     * 
-    */
-    #resolveRoutesMetadata() {
-
-        /**@type {RouteMap} */
-        const routeMap = this.configuration.routeMap;
-
-        /**@type {string} */
-        const currentRoutePattern = this.httpContext.route.path;
-
-        const metadatas = routeMap.get(currentRoutePattern);
-
-        return this.#mapRouteMetadataToMethods(metadatas);
+        super._emit(_data);
     }
 
     /**
@@ -222,47 +185,6 @@ const proto = module.exports = class HttpController extends SignalIssuer {
         return this.#handlingProgress = lastHandledValue;
     }
 
-
-    /**
-     * 
-     * @param {Set<RouteMetadata>} _meta 
-     * 
-     * @returns {Array<Function>}
-     */
-    #mapRouteMetadataToMethods(_meta) {
-        
-        /**@type {Array<Function>} */
-        const ret = [];
-
-        //const httpRequest = this.httpContext.request;
-        const httpContext = this.httpContext;
-        
-        /**@type {string} */
-        const httpMethod = httpContext.method;//httpRequest.method;
-
-        /**@type {string} */
-        const reqPattern = httpContext.route.path;//httpRequest.route.path;
-
-        
-        
-        for (/**@type {RouteMetadata} */ const routeMeta of _meta?.values() ?? []) {
-            
-            if (!routeMeta.match(reqPattern, httpMethod)) {
-
-                continue;
-            }
-
-            const methodName = routeMeta.mappedMethodName;
-            const fn = this[methodName];
-            
-            if (typeof fn === 'function') {
-
-                ret.push(fn);
-            }
-        }
-        
-        return ret;
-    }
 
     /**
      * 
@@ -302,11 +224,3 @@ const proto = module.exports = class HttpController extends SignalIssuer {
         return new ResponseResultBuilder().status(_code);
     }
 }
-
-
-Object.defineProperty(proto, 'base', {
-    configurable: false,
-    writable: false,
-    enumerable: true,
-    value: BASE_HTTP_CONTROLLER
-});
