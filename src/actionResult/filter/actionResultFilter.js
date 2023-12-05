@@ -13,7 +13,7 @@ module.exports = class ActionResultFilter extends SignalConsumer {
 
         console.log('catch action result signal');
 
-        if (!this.signal.value) {
+        if (!this.signal?.value) {
 
             throw NO_ACTION_RESULT;
         }

@@ -38,6 +38,7 @@ module.exports = class HttpContext extends Context {
     static {
 
         this.__init();
+        this.pipeline.summarizeErrors();
     }
 
     static configure() {
