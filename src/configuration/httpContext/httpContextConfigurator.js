@@ -70,7 +70,6 @@ module.exports = class HttpContextConfigurator {
         this.#mount();
         
         const endpointFilter = this.#retrieveEndpointFilters();
-
         const expressAppHandlers = [endpointFilter, mainContextHandler(this.#httpContextClass)];
 
         this.#configuration.setServingFactors(expressAppHandlers);
@@ -110,14 +109,13 @@ module.exports = class HttpContextConfigurator {
          * the interupt mechanism, when a controller handles a request, it throws an ActionResult 
          * signal for httpcontext pipeline to catch and handle it.
          */
-        //httpContextPipeline.onError();
+        httpContextPipeline.onError(ActionResultFilter);
     }
 
     #registerErrorHandlers() {
 
         /**@type {Pipeline} */
         const httpContextPipeline = this.#httpContextClass.pipeline;
-
         const configuration = this.#configuration;
 
         for (const handler of configuration.errorHandlers || []) {
@@ -157,10 +155,9 @@ module.exports = class HttpContextConfigurator {
     #registerControllerPhase() {
 
         const configuration = this.#configuration;
-        
         const controllerPipeline = new Pipeline();
 
-        this.#registerControllerPipelineActionResultFilter(controllerPipeline);
+        //this.#registerControllerPipelineActionResultFilter(controllerPipeline);
 
         for (const Controller of configuration.controllers.values() ?? []) {
 

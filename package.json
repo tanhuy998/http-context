@@ -25,6 +25,6 @@
   },
   "dependencies": {
     "express": "^4.18.2",
-    "isln": "^0.1.1-beta.3"
+    "isln": "^0.1.1-beta.4"
   }
 }
