@@ -5,6 +5,10 @@ const HttpContextConfiguration = require('./httpContextConfiguration.js');
 const express = require('express');
 const {mainContextHandler} = require('../../expressHandler.js');
 const ActionResultFilter = require('../../actionResult/filter/actionResultFilter.js');
+const IActionResult = require('../../actionResult/iActionResult.js');
+const Signal = require('../../signal/signalType/signal.js');
+const ActionResult = require('../../actionResult/actionResult.js');
+const PostActionResult = require('../../handler/postActionResult.js');
 
 /**
  * @typedef {import('../httpController/httpControllerConfiguration.js')} HttpControllerConfiguration
@@ -56,8 +60,8 @@ module.exports = class HttpContextConfigurator {
         this.#registerPreActionPhase();
         this.#registerControllerPhase();
         this.#registerControllerActionResutFilter();
-        this.#registerErrorHandlers();
         this.#registerPostActionPhase();
+        this.#registerErrorHandlers();
     }
 
     serve() {
@@ -67,6 +71,7 @@ module.exports = class HttpContextConfigurator {
             return this.#configuration.servingFactors;
         }
 
+        this.#bindComponents();
         this.#mount();
         
         const endpointFilter = this.#retrieveEndpointFilters();
@@ -76,6 +81,14 @@ module.exports = class HttpContextConfigurator {
         this.#ready = true;
 
         return expressAppHandlers;
+    }
+
+    #bindComponents() {
+
+        const components = this.#httpContextClass.components;
+
+        components.bindScope(IActionResult, ActionResult);
+        components.bindScope(Signal, Signal);
     }
 
     /**
@@ -141,7 +154,9 @@ module.exports = class HttpContextConfigurator {
 
     #registerPostActionPhase() {
 
+        const httpPipeline = this.#httpContextClass.pipeline;
 
+        httpPipeline.addPhase().setHandler(PostActionResult).build();
     }
 
     *#retriveControlersRouteGroup() {

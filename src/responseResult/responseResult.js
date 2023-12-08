@@ -55,18 +55,24 @@ module.exports = class Responseresult {
         this.#sendHeaders();
         this.#sendCookie();
         this.#sendBody();
+        this.#end();
     }
 
     #sendStatus() {
 
-        this.#responseObj.statusCode(this.#status);
+        this.#responseObj.status(this.#status || 200);
     }
 
     #sendHeaders() {
 
+        if (!this.#header) {
+
+            return;
+        }
+
         this.#responseObj.header(this.#header.value);
     }
-
+    
     #sendCookie() {
 
         //this.#responseObj.
@@ -74,6 +80,16 @@ module.exports = class Responseresult {
 
     #sendBody() {
 
-        this.#responseObj.send(this.#body.value);
+        if (!this.#body?.value) {
+
+            return;
+        }
+
+        this.#responseObj.write(this.#body.value);
+    }
+
+    #end() {
+
+        this.#responseObj.end();
     }
 }
